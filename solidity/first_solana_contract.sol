@@ -1,5 +1,4 @@
-
-@program_id("F1ipperKF9EfD821ZbbYjS319LXYiBmjhzkkf5a26rC")
+@program_id("33y4yjhenw3rbSvzb3NoMktAmMzdMh9FfGbuEgKuU8qK")
 contract first_solana_contract {
     bool private value = true;
 
@@ -12,11 +11,11 @@ contract first_solana_contract {
     /// This one flips the value of the stored `bool` from `true`
     /// to `false` and vice versa.
     function flip() public {
-            value = !value;
+        value = !value;
     }
 
     /// Simply returns the current value of our `bool`.
     function get() public view returns (bool) {
-            return value;
+        return value;
     }
 }

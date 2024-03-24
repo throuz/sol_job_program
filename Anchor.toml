@@ -5,13 +5,16 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-first_solana_contract = "F1ipperKF9EfD821ZbbYjS319LXYiBmjhzkkf5a26rC"
+first_solana_contract = "33y4yjhenw3rbSvzb3NoMktAmMzdMh9FfGbuEgKuU8qK"
+
+[programs.devnet]
+first_solana_contract = "33y4yjhenw3rbSvzb3NoMktAmMzdMh9FfGbuEgKuU8qK"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "devnet"
 wallet = "/Users/user/.config/solana/id.json"
 
 [scripts]

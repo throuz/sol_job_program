@@ -10,7 +10,8 @@ describe("first_solana_contract", () => {
   const dataAccount = anchor.web3.Keypair.generate();
   const wallet = provider.wallet;
 
-  const program = anchor.workspace.FirstSolanaContract as Program<FirstSolanaContract>;
+  const program = anchor.workspace
+    .FirstSolanaContract as Program<FirstSolanaContract>;
 
   it("Is initialized!", async () => {
     // Add your test here.
@@ -38,5 +39,6 @@ describe("first_solana_contract", () => {
       .accounts({ dataAccount: dataAccount.publicKey })
       .view();
 
-    console.log("state", val2);  });
+    console.log("state", val2);
+  });
 });
