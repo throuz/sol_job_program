@@ -5,10 +5,10 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-first_solana_contract = "33y4yjhenw3rbSvzb3NoMktAmMzdMh9FfGbuEgKuU8qK"
+sol_job_program = "59iDUfJYQGN2SBVB6aAvD6vPgKVbu9kxntkKrZ1cWKo8"
 
 [programs.devnet]
-first_solana_contract = "33y4yjhenw3rbSvzb3NoMktAmMzdMh9FfGbuEgKuU8qK"
+sol_job_program = "59iDUfJYQGN2SBVB6aAvD6vPgKVbu9kxntkKrZ1cWKo8"
 
 [registry]
 url = "https://api.apr.dev"

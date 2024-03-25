@@ -1,8 +1,8 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { FirstSolanaContract } from "../target/types/first_solana_contract";
+import { SolJobProgram } from "../target/types/sol_job_program";
 
-describe("first_solana_contract", () => {
+describe("sol_job_program", () => {
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
@@ -11,7 +11,7 @@ describe("first_solana_contract", () => {
   const wallet = provider.wallet;
 
   const program = anchor.workspace
-    .FirstSolanaContract as Program<FirstSolanaContract>;
+    .SolJobProgram as Program<SolJobProgram>;
 
   it("Is initialized!", async () => {
     // Add your test here.
