@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer as SplTransfer};
 use solana_program::system_instruction;
-declare_id!("11111111111111111111111111111111");
+declare_id!("1hFRBhdZeV1xy53V1Yd3DX4yMxiHc3xznyJiUSTdz69");
 
 #[derive(Accounts)]
 pub struct TransferLamports<'info> {
