@@ -20,13 +20,19 @@ default = []
 anchor-lang = "0.29.0"
 anchor-spl = "0.29.0"
 solana-program = "1.18.8"
+mpl-token-metadata = "4.1.2"
 
+
+[programs.localnet]
+sol_job_program = "59iDUfJYQGN2SBVB6aAvD6vPgKVbu9kxntkKrZ1cWKo8"
+
+[programs.devnet]
+sol_job_program = "59iDUfJYQGN2SBVB6aAvD6vPgKVbu9kxntkKrZ1cWKo8"
+
+
+[registry]
+url = "https://api.apr.dev"
 
 [provider]
 cluster = "devnet"
 wallet = "/home/outsider/.config/solana/id.json"
-
-[programs.devnet]
-sol_job_program = "YfY15xGqFCb6jUKNYDbN44mDVxqbZp4hdppeb6jPdYz"
-
-
