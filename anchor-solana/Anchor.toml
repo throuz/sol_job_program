@@ -4,15 +4,27 @@
 seeds = false
 skip-lint = false
 
-[programs.localnet]
-anchor_solana = "6bNvL8etdpkopaHnukGpExuqbCaqkFhd3Psh46KsdhjN"
-
 [registry]
 url = "https://api.apr.dev"
 
-[provider]
-cluster = "Localnet"
-wallet = "/home/outsider/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 ./tests/**/*.ts"
+
+
+[programs.localnet]
+solana_lamport_transfer = "6nouU53m9Q6AuKSV5zYwP9aTwPq2xN6Bt9tSvv8yBY2F"
+
+[programs.devnet]
+solana_lamport_transfer = "6nouU53m9Q6AuKSV5zYwP9aTwPq2xN6Bt9tSvv8yBY2F"
+
+
+[provider]
+cluster = "devnet"
+wallet = "/home/outsider/.config/solana/id.json"
+
+[lib]
+name = "sol_job_program"
+
+[package]
+name = "sol_job_program"

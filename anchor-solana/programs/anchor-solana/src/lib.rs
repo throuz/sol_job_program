@@ -1,7 +1,8 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer as SplTransfer};
+use mpl_token_metadata::types::DataV2;
 use solana_program::system_instruction;
-declare_id!("1hFRBhdZeV1xy53V1Yd3DX4yMxiHc3xznyJiUSTdz69");
+declare_id!("6nouU53m9Q6AuKSV5zYwP9aTwPq2xN6Bt9tSvv8yBY2F");
 
 #[derive(Accounts)]
 pub struct TransferLamports<'info> {
@@ -14,7 +15,7 @@ pub struct TransferLamports<'info> {
 }
 
 #[program]
-pub mod solana_lamport_transfer {
+pub mod sol_job_program {
     use super::*;
     pub fn transfer_lamports(ctx: Context<TransferLamports>, amount: u64) -> Result<()> {
         let from_account = &ctx.accounts.from;
@@ -23,6 +24,12 @@ pub mod solana_lamport_transfer {
         let transfer_instruction =
             system_instruction::transfer(from_account.key, to_account.key, amount);
         // Invoke the transfer instruction
+        msg!(
+            "Transferring {} lamports from {} to {}",
+            amount,
+            from_account.key,
+            to_account.key
+        );
         anchor_lang::solana_program::program::invoke_signed(
             &transfer_instruction,
             &[

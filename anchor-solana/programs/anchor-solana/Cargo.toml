@@ -24,10 +24,10 @@ mpl-token-metadata = "4.1.2"
 
 
 [programs.localnet]
-sol_job_program = "59iDUfJYQGN2SBVB6aAvD6vPgKVbu9kxntkKrZ1cWKo8"
+solana_lamport_transfer = "6nouU53m9Q6AuKSV5zYwP9aTwPq2xN6Bt9tSvv8yBY2F"
 
 [programs.devnet]
-sol_job_program = "59iDUfJYQGN2SBVB6aAvD6vPgKVbu9kxntkKrZ1cWKo8"
+solana_lamport_transfer = "6nouU53m9Q6AuKSV5zYwP9aTwPq2xN6Bt9tSvv8yBY2F"
 
 
 [registry]
