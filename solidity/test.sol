@@ -1,4 +1,4 @@
-// @program_id("59iDUfJYQGN2SBVB6aAvD6vPgKVbu9kxntkKrZ1cWKo8")
+// @program_id("7knLbMVcZSW8Ha52YS7kNuhQXF13iW4t1WB125tx6qob")
 contract sol_job_program {
     address public owner;
     address public thirdPartyPlatform;
@@ -18,16 +18,11 @@ contract sol_job_program {
         string indexed requirementAndAmount
     );
 
-    modifier onlyThirdPartyPlatform() {
-        require(
-            msg.sender == thirdPartyPlatform,
-            "Only third party platform can call this function"
-        );
-        _;
-    }
+   
 
-    constructor() {
-        thirdPartyPlatform = msg.sender;
+    @signer(authorityAccount)
+    constructor( address new_authority) {
+        thirdPartyPlatform = new_authority;
 
         contractInitiated = false;
         ownerAgreed = false;
@@ -40,7 +35,7 @@ contract sol_job_program {
         string memory _requirement,
         uint256 _owerUsdtAmount,
         uint256 _expirationTime
-    ) external payable onlyThirdPartyPlatform returns (string memory) {
+    ) external payable  returns (string memory) {
         require(!contractInitiated, "Contract has already been initiated");
         // initiate contract var
         requirement = _requirement;

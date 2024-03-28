@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer as SplTransfer};
 use mpl_token_metadata::types::DataV2;
 use solana_program::system_instruction;
-declare_id!("6nouU53m9Q6AuKSV5zYwP9aTwPq2xN6Bt9tSvv8yBY2F");
+declare_id!("7cXSkzJBrEZ3pZub2pinSTxHj6baYmsXsU1WqJpdQBHC");
 
 #[derive(Accounts)]
 pub struct TransferLamports<'info> {

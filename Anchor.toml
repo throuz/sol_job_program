@@ -5,17 +5,18 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-sol_job_program = "59iDUfJYQGN2SBVB6aAvD6vPgKVbu9kxntkKrZ1cWKo8"
+sol_job_program = "7knLbMVcZSW8Ha52YS7kNuhQXF13iW4t1WB125tx6qob"
 
 [programs.devnet]
-sol_job_program = "59iDUfJYQGN2SBVB6aAvD6vPgKVbu9kxntkKrZ1cWKo8"
+sol_job_program = "7knLbMVcZSW8Ha52YS7kNuhQXF13iW4t1WB125tx6qob"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
 cluster = "devnet"
-wallet = "/Users/user/.config/solana/id.json"
+# wallet = "/Users/user/.config/solana/id.json"
+wallet = "/home/outsider/.config/solana/id.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
