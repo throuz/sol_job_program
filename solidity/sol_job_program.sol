@@ -1,81 +1,34 @@
-// @program_id("7knLbMVcZSW8Ha52YS7kNuhQXF13iW4t1WB125tx6qob")
-// contract sol_job_program {
-//   bool private value = true;
+import "../libraries/system_instruction.sol";
 
-//   @payer(payer)
-//   constructor() {
-//     print("Hello, World!");
-//   }
-
-//   /// A message that can be called on instantiated contracts.
-//   /// This one flips the value of the stored `bool` from `true`
-//   /// to `false` and vice versa.
-//   function flip() public {
-//     value = !value;
-//   }
-
-//   /// Simply returns the current value of our `bool`.
-//   function get() public view returns (bool) {
-//     return value;
-//   }
-// }
-
-@program_id("9cvE2LqwkzQX2RXFBPH4XrHfs4VcdHRbCFDSWDFTwrw1")
+@program_id("D5Y1bmRzxQK8RSTGbxMBHkfa2DEmxZU2qcoiEX1PABeJ")
 contract sol_job_program {
-  address public owner;
-  address public thirdPartyPlatform;
-  address public leader;
-  uint256 public owerUsdtAmount;
-  uint256 public leaderUsdtAmount;
-  bool public contractInitiated;
-  bool public ownerAgreed;
-  bool public leaderSigned;
-  bool public collateralTransferred;
-  string public requirement;
-  uint256 public expirationTime;
+    @payer(payer) // payer to create new data account
+    constructor() {
+        // No data is stored in the account in this example
+    }
 
-  event ContractInitiated(
-    address indexed owner,
-    address indexed thirdPartyPlatform,
-    string indexed requirementAndAmount
-  );
+    // Transfer SOL from one account to another using CPI (Cross Program Invocation) to the System program
+    @mutableSigner(sender)
+    @mutableAccount(recipient)
+    function transferSolWithCpi(uint64 lamports) external {
+        // CPI to transfer SOL using "system_instruction" library
+        SystemInstruction.transfer(
+            tx.accounts.sender.key, tx.accounts.recipient.key, lamports
+        );
+    }
 
-  @signer(authorityAccount)
-  @payer(payer)
-  constructor(address new_authority) {
-    thirdPartyPlatform = new_authority;
+    // Transfer SOL from program owned account to another address by directly modifying the account data lamports
+    // This approach only works for accounts owned by the program itself (ex. the dataAccount created in the constructor)
+    @mutableAccount(sender)
+    @mutableAccount(recipient)
+    function transferSolWithProgram(uint64 lamports) external view {
+        AccountInfo from = tx.accounts.sender; // first account must be an account owned by the program
+        AccountInfo to = tx.accounts.recipient; // second account must be the intended recipient
 
-    contractInitiated = false;
-    ownerAgreed = false;
-    leaderSigned = false;
-    collateralTransferred = false;
-  }
+        print("From: {:}".format(from.key));
+        print("To: {:}".format(to.key));
 
-
-  function initiateContract(
-    address _owner,
-    string memory _requirement,
-    uint256 _owerUsdtAmount,
-    uint256 _expirationTime
-  ) external payable returns (string memory) {
-    require(!contractInitiated, "Contract has already been initiated");
-    // initiate contract var
-    requirement = _requirement;
-    expirationTime = _expirationTime;
-    owerUsdtAmount = _owerUsdtAmount;
-
-    owner = _owner;
-
-    string memory descriptionOfrequirment =
-      string(abi.encodePacked("reauirment is : ", requirement));
-    string memory owerUsdtAmountStr =
-      string(abi.encodePacked("usdt amount is : ", owerUsdtAmount));
-    string memory requirementAndAmount =
-      string(abi.encodePacked(descriptionOfrequirment, owerUsdtAmountStr));
-
-    emit ContractInitiated(owner, thirdPartyPlatform, requirementAndAmount); // 發送通知給業主以及第三方平台
-
-    contractInitiated = true;
-    return "initiate contract";
-  }
+        from.lamports -= lamports;
+        to.lamports += lamports;
+    }
 }
