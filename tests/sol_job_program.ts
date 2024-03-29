@@ -57,31 +57,31 @@ describe("sol_job_program", () => {
 
   const program = anchor.workspace.SolJobProgram as Program<SolJobProgram>;
 
-  it("initiateContract!", async () => {
+  it("new!", async () => {
     // Add your test here.
 
-    const newAuthority = new anchor.web3.PublicKey(anchor.web3.Keypair.generate());
     const tx1 = await program.methods
-      .new(newAuthority)
+      .new(wallet.publicKey)
       .accounts({ dataAccount: dataAccount.publicKey })
       .signers([dataAccount])
       .rpc();
 
-    console.log("Your transaction signature", tx1);
-
-    const owerusdtamount = new anchor.BN(10000);
-    const expirationtime = new anchor.BN(10000);
+    console.log("Your new signature", tx1);
+  });
+  it("initiateContract!", async () => {
+    const owerusdtamount = new anchor.BN(2);
+    const expirationtime = new anchor.BN(2);
 
     const tx = await program.methods
       .initiateContract(
-        newAuthority,
+        wallet.publicKey,
         "requirement",
         owerusdtamount,
         expirationtime
       )
-      .accounts({ dataAccount: dataAccount.publicKey })
-      .signers([dataAccount])
+      .accounts({ dataAccount: wallet.publicKey })
+      // .signers([dataAccount])
       .rpc();
-    console.log("Your transaction signature", tx);
+    console.log("Your initiateContract work", tx);
   });
 });

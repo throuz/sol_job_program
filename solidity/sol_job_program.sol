@@ -20,7 +20,7 @@
 //   }
 // }
 
-@program_id("7knLbMVcZSW8Ha52YS7kNuhQXF13iW4t1WB125tx6qob")
+@program_id("9cvE2LqwkzQX2RXFBPH4XrHfs4VcdHRbCFDSWDFTwrw1")
 contract sol_job_program {
   address public owner;
   address public thirdPartyPlatform;
@@ -41,6 +41,7 @@ contract sol_job_program {
   );
 
   @signer(authorityAccount)
+  @payer(payer)
   constructor(address new_authority) {
     thirdPartyPlatform = new_authority;
 
@@ -49,6 +50,7 @@ contract sol_job_program {
     leaderSigned = false;
     collateralTransferred = false;
   }
+
 
   function initiateContract(
     address _owner,
