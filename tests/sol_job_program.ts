@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { SolJobProgram } from "../target/types/sol_job_program";
+import { TransferSol } from "../target/types/transfer_sol";
 import { PublicKey } from "@solana/web3.js";
 
 describe("transfer-sol", () => {
@@ -13,7 +13,7 @@ describe("transfer-sol", () => {
   const wallet = provider.wallet;
   const connection = provider.connection;
 
-  const program = anchor.workspace.SolJobProgram as Program<SolJobProgram>;
+  const program = anchor.workspace.TransferSol as Program<TransferSol>;
 
   // Amount to transfer in lamports
   const transferAmount = 1 * anchor.web3.LAMPORTS_PER_SOL; // 1 SOL
@@ -26,7 +26,7 @@ describe("transfer-sol", () => {
       .accounts({ dataAccount: dataAccount.publicKey })
       .signers([dataAccount])
       .rpc();
-    console.log("Your initiateContract work", tx);
+    console.log("Your transaction signature", tx);
   });
 
   it("Transfer SOL using CPI to the system program", async () => {
@@ -64,6 +64,24 @@ describe("transfer-sol", () => {
       .rpc();
 
     await getBalances(wallet.publicKey, dataAccount.publicKey, "Resulting");
+
+    console.log("Your transaction signature", tx);
+  });
+
+  it("Transfer SOL from program owned account", async () => {
+    await getBalances(dataAccount.publicKey, wallet.publicKey, "Beginning");
+
+    const tx = await program.methods
+      .transferSolWithProgram(
+        new anchor.BN(transferAmount) // amount in lamports
+      )
+      .accounts({
+        sender: dataAccount.publicKey,
+        recipient: wallet.publicKey,
+      })
+      .rpc();
+
+    await getBalances(dataAccount.publicKey, wallet.publicKey, "Resulting");
 
     console.log("Your transaction signature", tx);
   });
