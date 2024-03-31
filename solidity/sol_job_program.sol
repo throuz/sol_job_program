@@ -2,33 +2,47 @@ import "../libraries/system_instruction.sol";
 
 @program_id("D5Y1bmRzxQK8RSTGbxMBHkfa2DEmxZU2qcoiEX1PABeJ")
 contract sol_job_program {
-    @payer(payer) // payer to create new data account
-    constructor() {
-        // No data is stored in the account in this example
-    }
+  uint64 private budgetLamports;
+  uint64 private securityDepositLamports;
 
-    // Transfer SOL from one account to another using CPI (Cross Program Invocation) to the System program
-    @mutableSigner(sender)
-    @mutableAccount(recipient)
-    function transferSolWithCpi(uint64 lamports) external {
-        // CPI to transfer SOL using "system_instruction" library
-        SystemInstruction.transfer(
-            tx.accounts.sender.key, tx.accounts.recipient.key, lamports
-        );
-    }
+  @payer(payer)
+  constructor(uint64 _budgetLamports, uint64 _securityDepositLamports) {
+    budgetLamports = _budgetLamports;
+    securityDepositLamports = _securityDepositLamports;
+    SystemInstruction.transfer(
+      tx.accounts.payer.key,
+      tx.accounts.dataAccount.key,
+      securityDepositLamports
+    );
+  }
 
-    // Transfer SOL from program owned account to another address by directly modifying the account data lamports
-    // This approach only works for accounts owned by the program itself (ex. the dataAccount created in the constructor)
-    @mutableAccount(sender)
-    @mutableAccount(recipient)
-    function transferSolWithProgram(uint64 lamports) external view {
-        AccountInfo from = tx.accounts.sender; // first account must be an account owned by the program
-        AccountInfo to = tx.accounts.recipient; // second account must be the intended recipient
+  @mutableSigner(takerAccount)
+  function takeCase() external {
+    SystemInstruction.transfer(
+      tx.accounts.takerAccount.key,
+      tx.accounts.dataAccount.key,
+      securityDepositLamports
+    );
+  }
 
-        print("From: {:}".format(from.key));
-        print("To: {:}".format(to.key));
+  @mutableAccount(platformAccount)
+  @mutableAccount(makerAccount)
+  @mutableAccount(takerAccount)
+  function closeCase() external {
+    tx.accounts.dataAccount.lamports -= securityDepositLamports * 2;
+    tx.accounts.platformAccount.lamports += securityDepositLamports * 2 / 100;
+    tx.accounts.makerAccount.lamports += securityDepositLamports * 99 / 100;
+    tx.accounts.takerAccount.lamports += securityDepositLamports * 99 / 100;
+    SystemInstruction.transfer(
+      tx.accounts.makerAccount.key, tx.accounts.takerAccount.key, budgetLamports
+    );
+  }
 
-        from.lamports -= lamports;
-        to.lamports += lamports;
-    }
+  @mutableAccount(platformAccount)
+  @mutableAccount(winnerAccount)
+  function closeCaseByPlatform() external {
+    tx.accounts.dataAccount.lamports -= securityDepositLamports * 2;
+    tx.accounts.platformAccount.lamports += securityDepositLamports * 2 / 100;
+    tx.accounts.winnerAccount.lamports += securityDepositLamports * 198 / 100;
+  }
 }
