@@ -26,16 +26,29 @@ describe("transfer-sol", async () => {
     0.03 * anchor.web3.LAMPORTS_PER_SOL
   );
 
+  const requestAirdrop = async (
+    to: anchor.web3.PublicKey,
+    lamports: number
+  ) => {
+    const airdropSignature = await connection.requestAirdrop(to, lamports);
+    const latestBlockHash = await connection.getLatestBlockhash();
+    await connection.confirmTransaction({
+      blockhash: latestBlockHash.blockhash,
+      lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+      signature: airdropSignature,
+    });
+  };
+
   it("Airdrop!", async () => {
-    await connection.requestAirdrop(
+    await requestAirdrop(
       platformAccount.publicKey,
       1 * anchor.web3.LAMPORTS_PER_SOL
     );
-    await connection.requestAirdrop(
+    await requestAirdrop(
       makerAccount.publicKey,
       1 * anchor.web3.LAMPORTS_PER_SOL
     );
-    await connection.requestAirdrop(
+    await requestAirdrop(
       takerAccount.publicKey,
       1 * anchor.web3.LAMPORTS_PER_SOL
     );
@@ -64,6 +77,7 @@ describe("transfer-sol", async () => {
     await program.methods
       .new(budgetLamports, securityDepositLamports)
       .accounts({
+        payer: makerAccount.publicKey,
         dataAccount: dataAccount.publicKey,
       })
       .signers([dataAccount])
