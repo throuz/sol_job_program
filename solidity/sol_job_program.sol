@@ -5,8 +5,8 @@ contract sol_job_program {
   address private platformPubKey;
   address private makerPubKey;
   address private takerPubKey;
-  uint64 private budgetLamports;
-  uint64 private securityDepositLamports;
+  uint64 private totalLamports;
+  uint64 private depositLamports;
 
   enum Status {
     Pending,
@@ -21,57 +21,69 @@ contract sol_job_program {
   @payer(payer)
   constructor(
     address _platformPubKey,
-    uint64 _budgetLamports,
-    uint64 _securityDepositLamports
+    uint64 _totalLamports,
+    uint64 _depositLamports
   ) {
     platformPubKey = _platformPubKey;
     makerPubKey = tx.accounts.payer.key;
-    budgetLamports = _budgetLamports;
-    securityDepositLamports = _securityDepositLamports;
+    totalLamports = _totalLamports;
+    depositLamports = _depositLamports;
     SystemInstruction.transfer(
-      tx.accounts.payer.key,
-      tx.accounts.dataAccount.key,
-      securityDepositLamports
+      tx.accounts.payer.key, tx.accounts.dataAccount.key, depositLamports
     );
     status = Status.Pending;
   }
 
   @mutableSigner(signer)
-  function takeCase() external {
+  function takerTakeCase() external {
     require(status == Status.Pending, "NOT_ALLOW_TAKE");
     takerPubKey = tx.accounts.signer.key;
     SystemInstruction.transfer(
-      takerPubKey, tx.accounts.dataAccount.key, securityDepositLamports
+      takerPubKey, tx.accounts.dataAccount.key, depositLamports
     );
     status = Status.Taken;
   }
 
   @mutableSigner(signer)
-  function confirmCaseComplete() external {
+  function makerConfirmCaseComplete() external {
     require(status == Status.Taken, "NOT_ALLOW_COMPLETE");
     require(tx.accounts.signer.key == makerPubKey, "INVALID_MAKER");
     address dataAccountPubKey = tx.accounts.dataAccount.key;
-    SystemInstruction.transfer(
-      makerPubKey, dataAccountPubKey, budgetLamports - securityDepositLamports
-    );
+    SystemInstruction.transfer(makerPubKey, dataAccountPubKey, totalLamports);
     status = Status.Unpaid;
   }
 
   @mutableSigner(signer)
-  function payToTaker() external {
-    require(status == Status.Unpaid, "NOT_ALLOW_PAY_TO");
+  function takerGetIncome() external {
+    require(status == Status.Unpaid, "NOT_ALLOW_GET_INCOME");
     require(tx.accounts.signer.key == takerPubKey, "INVALID_TAKER");
-    tx.accounts.dataAccount.lamports -= budgetLamports;
-    tx.accounts.signer.lamports += budgetLamports;
+    tx.accounts.dataAccount.lamports -= totalLamports * 99 / 100;
+    tx.accounts.signer.lamports += totalLamports * 99 / 100;
     status = Status.Paid;
   }
 
   @mutableSigner(signer)
-  function closeCase() external {
+  function makerRedemptionDeposit() external {
+    require(status == Status.Paid, "NOT_ALLOW_REDEMPTION_DEPOSIT");
+    require(tx.accounts.signer.key == makerPubKey, "INVALID_MAKER");
+    tx.accounts.dataAccount.lamports -= depositLamports;
+    tx.accounts.signer.lamports += depositLamports;
+  }
+
+  @mutableSigner(signer)
+  function takerRedemptionDeposit() external {
+    require(status == Status.Paid, "NOT_ALLOW_REDEMPTION_DEPOSIT");
+    require(tx.accounts.signer.key == takerPubKey, "INVALID_TAKER");
+    tx.accounts.dataAccount.lamports -= depositLamports;
+    tx.accounts.signer.lamports += depositLamports;
+  }
+
+  @mutableSigner(signer)
+  function platformCloseCase() external {
     require(status == Status.Paid, "NOT_ALLOW_CLOSE");
     require(tx.accounts.signer.key == platformPubKey, "INVALID_PLATFORM");
-    tx.accounts.dataAccount.lamports -= securityDepositLamports * 2 / 100;
-    tx.accounts.signer.lamports += securityDepositLamports * 2 / 100;
+    tx.accounts.dataAccount.lamports -= totalLamports * 1 / 100;
+    tx.accounts.signer.lamports += totalLamports * 1 / 100;
     status = Status.Closed;
   }
 }

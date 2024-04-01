@@ -46,7 +46,7 @@ describe("transfer-sol", async () => {
     });
   };
 
-  it("Airdrop!", async () => {
+  it("Airdrop platform, maker and taker", async () => {
     await requestAirdrop(
       platformAccount.publicKey,
       1 * anchor.web3.LAMPORTS_PER_SOL
@@ -62,7 +62,7 @@ describe("transfer-sol", async () => {
     await checkBalances();
   });
 
-  it("initialized!", async () => {
+  it("Maker create case", async () => {
     const budgetLamports = new anchor.BN(0.1 * anchor.web3.LAMPORTS_PER_SOL);
     const securityDepositLamports = new anchor.BN(
       0.03 * anchor.web3.LAMPORTS_PER_SOL
@@ -78,9 +78,9 @@ describe("transfer-sol", async () => {
     await checkBalances();
   });
 
-  it("Take case", async () => {
+  it("Taker take case", async () => {
     await program.methods
-      .takeCase()
+      .takerTakeCase()
       .accounts({
         signer: takerAccount.publicKey,
         dataAccount: dataAccount.publicKey,
@@ -90,9 +90,9 @@ describe("transfer-sol", async () => {
     await checkBalances();
   });
 
-  it("Confirm case complete", async () => {
+  it("Maker confirm case complete", async () => {
     await program.methods
-      .confirmCaseComplete()
+      .makerConfirmCaseComplete()
       .accounts({
         signer: makerAccount.publicKey,
         dataAccount: dataAccount.publicKey,
@@ -102,9 +102,9 @@ describe("transfer-sol", async () => {
     await checkBalances();
   });
 
-  it("Pay to taker", async () => {
+  it("Taker get income", async () => {
     await program.methods
-      .payToTaker()
+      .takerGetIncome()
       .accounts({
         signer: takerAccount.publicKey,
         dataAccount: dataAccount.publicKey,
@@ -114,9 +114,33 @@ describe("transfer-sol", async () => {
     await checkBalances();
   });
 
-  it("Close case", async () => {
+  it("Maker redemption deposit", async () => {
     await program.methods
-      .closeCase()
+      .makerRedemptionDeposit()
+      .accounts({
+        signer: makerAccount.publicKey,
+        dataAccount: dataAccount.publicKey,
+      })
+      .signers([makerAccount])
+      .rpc();
+    await checkBalances();
+  });
+
+  it("Taker redemption deposit", async () => {
+    await program.methods
+      .takerRedemptionDeposit()
+      .accounts({
+        signer: takerAccount.publicKey,
+        dataAccount: dataAccount.publicKey,
+      })
+      .signers([takerAccount])
+      .rpc();
+    await checkBalances();
+  });
+
+  it("Platform close case", async () => {
+    await program.methods
+      .platformCloseCase()
       .accounts({
         signer: platformAccount.publicKey,
         dataAccount: dataAccount.publicKey,
