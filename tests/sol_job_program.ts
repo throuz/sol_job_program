@@ -1,11 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { SolJobProgram } from "../target/types/sol_job_program";
-import {
-  SystemProgram,
-  Transaction,
-  sendAndConfirmTransaction,
-} from "@solana/web3.js";
+import { PublicKey } from "@solana/web3.js";
 
 describe("transfer-sol", async () => {
   const provider = anchor.AnchorProvider.env();
@@ -14,17 +10,33 @@ describe("transfer-sol", async () => {
   const wallet = provider.wallet;
   const connection = provider.connection;
 
-  const dataAccount = anchor.web3.Keypair.generate();
+  const program = anchor.workspace.SolJobProgram as Program<SolJobProgram>;
+
   const platformAccount = anchor.web3.Keypair.generate();
   const makerAccount = anchor.web3.Keypair.generate();
   const takerAccount = anchor.web3.Keypair.generate();
 
-  const program = anchor.workspace.SolJobProgram as Program<SolJobProgram>;
-
-  const budgetLamports = new anchor.BN(0.1 * anchor.web3.LAMPORTS_PER_SOL);
-  const securityDepositLamports = new anchor.BN(
-    0.03 * anchor.web3.LAMPORTS_PER_SOL
+  const [dataAccountPDA, bump] = PublicKey.findProgramAddressSync(
+    [Buffer.from("case"), makerAccount.publicKey.toBuffer()],
+    program.programId
   );
+
+  const checkBalances = async () => {
+    const getBalance = (publicKey: anchor.web3.PublicKey) => {
+      return connection.getBalance(publicKey);
+    };
+    const dataAccountBalance = await getBalance(dataAccountPDA);
+    const platformAccountBalance = await getBalance(platformAccount.publicKey);
+    const makerAccountBalance = await getBalance(makerAccount.publicKey);
+    const takerAccountBalance = await getBalance(takerAccount.publicKey);
+    const logBalance = (name: string, balance: number) => {
+      console.log(name, balance / anchor.web3.LAMPORTS_PER_SOL);
+    };
+    logBalance("dataAccountBalance", dataAccountBalance);
+    logBalance("platformAccountBalance", platformAccountBalance);
+    logBalance("makerAccountBalance", makerAccountBalance);
+    logBalance("takerAccountBalance", takerAccountBalance);
+  };
 
   const requestAirdrop = async (
     to: anchor.web3.PublicKey,
@@ -52,66 +64,53 @@ describe("transfer-sol", async () => {
       takerAccount.publicKey,
       1 * anchor.web3.LAMPORTS_PER_SOL
     );
+    await checkBalances();
   });
-
-  const checkBalances = async () => {
-    const getBalance = (publicKey: anchor.web3.PublicKey) => {
-      return connection.getBalance(publicKey);
-    };
-    const dataAccountBalance = await getBalance(dataAccount.publicKey);
-    const platformAccountBalance = await getBalance(platformAccount.publicKey);
-    const makerAccountBalance = await getBalance(makerAccount.publicKey);
-    const takerAccountBalance = await getBalance(takerAccount.publicKey);
-    const logBalance = (name: string, balance: number) => {
-      console.log(name, balance / anchor.web3.LAMPORTS_PER_SOL);
-    };
-    logBalance("dataAccountBalance", dataAccountBalance);
-    logBalance("platformAccountBalance", platformAccountBalance);
-    logBalance("makerAccountBalance", makerAccountBalance);
-    logBalance("takerAccountBalance", takerAccountBalance);
-  };
-
-  it("Check balances", checkBalances);
 
   it("initialized!", async () => {
+    const budgetLamports = new anchor.BN(0.1 * anchor.web3.LAMPORTS_PER_SOL);
+    const securityDepositLamports = new anchor.BN(
+      0.03 * anchor.web3.LAMPORTS_PER_SOL
+    );
     await program.methods
-      .new(budgetLamports, securityDepositLamports)
+      .new(
+        makerAccount.publicKey.toBuffer(),
+        [bump],
+        budgetLamports,
+        securityDepositLamports
+      )
       .accounts({
         payer: makerAccount.publicKey,
-        dataAccount: dataAccount.publicKey,
+        dataAccount: dataAccountPDA,
       })
-      .signers([dataAccount])
+      .signers([makerAccount])
       .rpc();
+    await checkBalances();
   });
-
-  it("Check balances", checkBalances);
 
   it("Take case", async () => {
     await program.methods
       .takeCase()
       .accounts({
-        dataAccount: dataAccount.publicKey,
+        dataAccount: dataAccountPDA,
         takerAccount: takerAccount.publicKey,
       })
-      .signers([takerAccount])
       .rpc();
+    await checkBalances();
   });
-
-  it("Check balances", checkBalances);
 
   it("Close case", async () => {
     await program.methods
       .closeCase()
       .accounts({
-        dataAccount: dataAccount.publicKey,
+        dataAccount: dataAccountPDA,
         platformAccount: platformAccount.publicKey,
         makerAccount: makerAccount.publicKey,
         takerAccount: takerAccount.publicKey,
       })
       .rpc();
+    await checkBalances();
   });
-
-  it("Check balances", checkBalances);
 
   // it("Close case by platform & maker win", async () => {
   //   await program.methods

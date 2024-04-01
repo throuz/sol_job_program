@@ -6,17 +6,23 @@ contract sol_job_program {
   uint64 private securityDepositLamports;
 
   @payer(payer)
-  constructor(uint64 _budgetLamports, uint64 _securityDepositLamports) {
+  @seed("case")
+  constructor(
+   @seed bytes makerSeed,
+   @bump bytes1 bump,
+    uint64 _budgetLamports,
+    uint64 _securityDepositLamports
+  ) {
+    (address pda, bytes1 _bump) = try_find_program_address(['case',makerSeed], address(this));
+    require(bump == _bump, "INVALID_BUMP");
     budgetLamports = _budgetLamports;
     securityDepositLamports = _securityDepositLamports;
     SystemInstruction.transfer(
-      tx.accounts.payer.key,
-      tx.accounts.dataAccount.key,
-      securityDepositLamports
+      tx.accounts.payer.key, pda, securityDepositLamports
     );
   }
 
-  @mutableSigner(takerAccount)
+  @mutableAccount(takerAccount)
   function takeCase() external {
     SystemInstruction.transfer(
       tx.accounts.takerAccount.key,
