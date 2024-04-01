@@ -1,7 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { SolJobProgram } from "../target/types/sol_job_program";
-import { PublicKey } from "@solana/web3.js";
 
 describe("transfer-sol", async () => {
   const provider = anchor.AnchorProvider.env();
@@ -12,20 +11,16 @@ describe("transfer-sol", async () => {
 
   const program = anchor.workspace.SolJobProgram as Program<SolJobProgram>;
 
+  const dataAccount = anchor.web3.Keypair.generate();
   const platformAccount = anchor.web3.Keypair.generate();
   const makerAccount = anchor.web3.Keypair.generate();
   const takerAccount = anchor.web3.Keypair.generate();
-
-  const [dataAccountPDA, bump] = PublicKey.findProgramAddressSync(
-    [Buffer.from("case"), makerAccount.publicKey.toBuffer()],
-    program.programId
-  );
 
   const checkBalances = async () => {
     const getBalance = (publicKey: anchor.web3.PublicKey) => {
       return connection.getBalance(publicKey);
     };
-    const dataAccountBalance = await getBalance(dataAccountPDA);
+    const dataAccountBalance = await getBalance(dataAccount.publicKey);
     const platformAccountBalance = await getBalance(platformAccount.publicKey);
     const makerAccountBalance = await getBalance(makerAccount.publicKey);
     const takerAccountBalance = await getBalance(takerAccount.publicKey);
@@ -73,17 +68,12 @@ describe("transfer-sol", async () => {
       0.03 * anchor.web3.LAMPORTS_PER_SOL
     );
     await program.methods
-      .new(
-        makerAccount.publicKey.toBuffer(),
-        [bump],
-        budgetLamports,
-        securityDepositLamports
-      )
+      .new(platformAccount.publicKey, budgetLamports, securityDepositLamports)
       .accounts({
         payer: makerAccount.publicKey,
-        dataAccount: dataAccountPDA,
+        dataAccount: dataAccount.publicKey,
       })
-      .signers([makerAccount])
+      .signers([makerAccount, dataAccount])
       .rpc();
     await checkBalances();
   });
@@ -92,9 +82,10 @@ describe("transfer-sol", async () => {
     await program.methods
       .takeCase()
       .accounts({
-        dataAccount: dataAccountPDA,
-        takerAccount: takerAccount.publicKey,
+        signer: takerAccount.publicKey,
+        dataAccount: dataAccount.publicKey,
       })
+      .signers([takerAccount])
       .rpc();
     await checkBalances();
   });
@@ -103,11 +94,10 @@ describe("transfer-sol", async () => {
     await program.methods
       .closeCase()
       .accounts({
-        dataAccount: dataAccountPDA,
-        platformAccount: platformAccount.publicKey,
-        makerAccount: makerAccount.publicKey,
-        takerAccount: takerAccount.publicKey,
+        signer: makerAccount.publicKey,
+        dataAccount: dataAccount.publicKey,
       })
+      .signers([makerAccount])
       .rpc();
     await checkBalances();
   });

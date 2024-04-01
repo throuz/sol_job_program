@@ -2,53 +2,65 @@ import "../libraries/system_instruction.sol";
 
 @program_id("D5Y1bmRzxQK8RSTGbxMBHkfa2DEmxZU2qcoiEX1PABeJ")
 contract sol_job_program {
+  address private platformPubKey;
+  address private makerPubKey;
+  address private takerPubKey;
   uint64 private budgetLamports;
   uint64 private securityDepositLamports;
 
   @payer(payer)
-  @seed("case")
   constructor(
-   @seed bytes makerSeed,
-   @bump bytes1 bump,
+    address _platformPubKey,
     uint64 _budgetLamports,
     uint64 _securityDepositLamports
   ) {
-    (address pda, bytes1 _bump) = try_find_program_address(['case',makerSeed], address(this));
-    require(bump == _bump, "INVALID_BUMP");
+    platformPubKey = _platformPubKey;
+    makerPubKey = tx.accounts.payer.key;
     budgetLamports = _budgetLamports;
     securityDepositLamports = _securityDepositLamports;
     SystemInstruction.transfer(
-      tx.accounts.payer.key, pda, securityDepositLamports
-    );
-  }
-
-  @mutableAccount(takerAccount)
-  function takeCase() external {
-    SystemInstruction.transfer(
-      tx.accounts.takerAccount.key,
+      tx.accounts.payer.key,
       tx.accounts.dataAccount.key,
       securityDepositLamports
     );
   }
 
-  @mutableAccount(platformAccount)
-  @mutableAccount(makerAccount)
-  @mutableAccount(takerAccount)
-  function closeCase() external {
-    tx.accounts.dataAccount.lamports -= securityDepositLamports * 2;
-    tx.accounts.platformAccount.lamports += securityDepositLamports * 2 / 100;
-    tx.accounts.makerAccount.lamports += securityDepositLamports * 99 / 100;
-    tx.accounts.takerAccount.lamports += securityDepositLamports * 99 / 100;
+  @mutableSigner(signer)
+  function takeCase() external {
+    takerPubKey = tx.accounts.signer.key;
     SystemInstruction.transfer(
-      tx.accounts.makerAccount.key, tx.accounts.takerAccount.key, budgetLamports
+      takerPubKey, tx.accounts.dataAccount.key, securityDepositLamports
     );
   }
 
-  @mutableAccount(platformAccount)
+  @mutableSigner(signer)
+  function closeCase() external {
+    require(tx.accounts.signer.key == makerPubKey, "INVALID_MAKER");
+    address dataAccountPubKey = tx.accounts.dataAccount.key;
+    SystemInstruction.transfer(
+      dataAccountPubKey, platformPubKey, securityDepositLamports * 2 / 100
+    );
+    SystemInstruction.transfer(
+      dataAccountPubKey, makerPubKey, securityDepositLamports * 99 / 100
+    );
+    SystemInstruction.transfer(
+      dataAccountPubKey, takerPubKey, securityDepositLamports * 99 / 100
+    );
+    SystemInstruction.transfer(makerPubKey, takerPubKey, budgetLamports);
+  }
+
+  @mutableSigner(signer)
   @mutableAccount(winnerAccount)
   function closeCaseByPlatform() external {
-    tx.accounts.dataAccount.lamports -= securityDepositLamports * 2;
-    tx.accounts.platformAccount.lamports += securityDepositLamports * 2 / 100;
-    tx.accounts.winnerAccount.lamports += securityDepositLamports * 198 / 100;
+    require(tx.accounts.signer.key == platformPubKey, "INVALID_PLATFORM");
+    address dataAccountPubKey = tx.accounts.dataAccount.key;
+    SystemInstruction.transfer(
+      dataAccountPubKey, platformPubKey, securityDepositLamports * 2 / 100
+    );
+    SystemInstruction.transfer(
+      dataAccountPubKey,
+      tx.accounts.winnerAccount.key,
+      securityDepositLamports * 198 / 100
+    );
   }
 }
