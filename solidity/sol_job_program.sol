@@ -8,6 +8,14 @@ contract sol_job_program {
   uint64 private budgetLamports;
   uint64 private securityDepositLamports;
 
+  enum Status {
+    Pending,
+    Accepted,
+    Closed
+  }
+
+  Status private status;
+
   @payer(payer)
   constructor(
     address _platformPubKey,
@@ -23,18 +31,22 @@ contract sol_job_program {
       tx.accounts.dataAccount.key,
       securityDepositLamports
     );
+    status = Status.Pending;
   }
 
   @mutableSigner(signer)
   function takeCase() external {
+    require(status == Status.Pending, "NOT_ALLOW_TAKE");
     takerPubKey = tx.accounts.signer.key;
     SystemInstruction.transfer(
       takerPubKey, tx.accounts.dataAccount.key, securityDepositLamports
     );
+    status = Status.Accepted;
   }
 
   @mutableSigner(signer)
   function closeCase() external {
+    require(status == Status.Accepted, "NOT_ALLOW_CLOSE");
     require(tx.accounts.signer.key == makerPubKey, "INVALID_MAKER");
     address dataAccountPubKey = tx.accounts.dataAccount.key;
     SystemInstruction.transfer(
@@ -47,11 +59,13 @@ contract sol_job_program {
       dataAccountPubKey, takerPubKey, securityDepositLamports * 99 / 100
     );
     SystemInstruction.transfer(makerPubKey, takerPubKey, budgetLamports);
+    status = Status.Closed;
   }
 
   @mutableSigner(signer)
   @mutableAccount(winnerAccount)
   function closeCaseByPlatform() external {
+    require(status == Status.Accepted, "NOT_ALLOW_CLOSE");
     require(tx.accounts.signer.key == platformPubKey, "INVALID_PLATFORM");
     address dataAccountPubKey = tx.accounts.dataAccount.key;
     SystemInstruction.transfer(
@@ -62,5 +76,6 @@ contract sol_job_program {
       tx.accounts.winnerAccount.key,
       securityDepositLamports * 198 / 100
     );
+    status = Status.Closed;
   }
 }
