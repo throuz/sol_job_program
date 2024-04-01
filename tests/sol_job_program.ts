@@ -90,9 +90,9 @@ describe("transfer-sol", async () => {
     await checkBalances();
   });
 
-  it("Close case", async () => {
+  it("Confirm case complete", async () => {
     await program.methods
-      .closeCase()
+      .confirmCaseComplete()
       .accounts({
         signer: makerAccount.publicKey,
         dataAccount: dataAccount.publicKey,
@@ -102,15 +102,27 @@ describe("transfer-sol", async () => {
     await checkBalances();
   });
 
-  // it("Close case by platform & maker win", async () => {
-  //   await program.methods
-  //     .closeCaseByPlatform()
-  //     .accounts({
-  //       platformAccount: platformAccount.publicKey,
-  //       winnerAccount: makerAccount.publicKey,
-  //     })
-  //     .rpc();
-  // });
+  it("Pay to taker", async () => {
+    await program.methods
+      .payToTaker()
+      .accounts({
+        signer: takerAccount.publicKey,
+        dataAccount: dataAccount.publicKey,
+      })
+      .signers([takerAccount])
+      .rpc();
+    await checkBalances();
+  });
 
-  // it("Check balances", checkBalances);
+  it("Close case", async () => {
+    await program.methods
+      .closeCase()
+      .accounts({
+        signer: platformAccount.publicKey,
+        dataAccount: dataAccount.publicKey,
+      })
+      .signers([platformAccount])
+      .rpc();
+    await checkBalances();
+  });
 });

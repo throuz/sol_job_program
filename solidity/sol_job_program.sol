@@ -10,7 +10,9 @@ contract sol_job_program {
 
   enum Status {
     Pending,
-    Accepted,
+    Taken,
+    Unpaid,
+    Paid,
     Closed
   }
 
@@ -41,41 +43,35 @@ contract sol_job_program {
     SystemInstruction.transfer(
       takerPubKey, tx.accounts.dataAccount.key, securityDepositLamports
     );
-    status = Status.Accepted;
+    status = Status.Taken;
+  }
+
+  @mutableSigner(signer)
+  function confirmCaseComplete() external {
+    require(status == Status.Taken, "NOT_ALLOW_COMPLETE");
+    require(tx.accounts.signer.key == makerPubKey, "INVALID_MAKER");
+    address dataAccountPubKey = tx.accounts.dataAccount.key;
+    SystemInstruction.transfer(
+      makerPubKey, dataAccountPubKey, budgetLamports - securityDepositLamports
+    );
+    status = Status.Unpaid;
+  }
+
+  @mutableSigner(signer)
+  function payToTaker() external {
+    require(status == Status.Unpaid, "NOT_ALLOW_PAY_TO");
+    require(tx.accounts.signer.key == takerPubKey, "INVALID_TAKER");
+    tx.accounts.dataAccount.lamports -= budgetLamports;
+    tx.accounts.signer.lamports += budgetLamports;
+    status = Status.Paid;
   }
 
   @mutableSigner(signer)
   function closeCase() external {
-    require(status == Status.Accepted, "NOT_ALLOW_CLOSE");
-    require(tx.accounts.signer.key == makerPubKey, "INVALID_MAKER");
-    address dataAccountPubKey = tx.accounts.dataAccount.key;
-    SystemInstruction.transfer(
-      dataAccountPubKey, platformPubKey, securityDepositLamports * 2 / 100
-    );
-    SystemInstruction.transfer(
-      dataAccountPubKey, makerPubKey, securityDepositLamports * 99 / 100
-    );
-    SystemInstruction.transfer(
-      dataAccountPubKey, takerPubKey, securityDepositLamports * 99 / 100
-    );
-    SystemInstruction.transfer(makerPubKey, takerPubKey, budgetLamports);
-    status = Status.Closed;
-  }
-
-  @mutableSigner(signer)
-  @mutableAccount(winnerAccount)
-  function closeCaseByPlatform() external {
-    require(status == Status.Accepted, "NOT_ALLOW_CLOSE");
+    require(status == Status.Paid, "NOT_ALLOW_CLOSE");
     require(tx.accounts.signer.key == platformPubKey, "INVALID_PLATFORM");
-    address dataAccountPubKey = tx.accounts.dataAccount.key;
-    SystemInstruction.transfer(
-      dataAccountPubKey, platformPubKey, securityDepositLamports * 2 / 100
-    );
-    SystemInstruction.transfer(
-      dataAccountPubKey,
-      tx.accounts.winnerAccount.key,
-      securityDepositLamports * 198 / 100
-    );
+    tx.accounts.dataAccount.lamports -= securityDepositLamports * 2 / 100;
+    tx.accounts.signer.lamports += securityDepositLamports * 2 / 100;
     status = Status.Closed;
   }
 }
