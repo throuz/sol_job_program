@@ -5,8 +5,9 @@ contract sol_job_program {
   address private platformPubKey;
   address private makerPubKey;
   address private takerPubKey;
-  uint64 private totalLamports;
-  uint64 private depositLamports;
+  uint64 private caseAmountLamports;
+  uint64 private makerDepositLamports;
+  uint64 private takerDepositLamports;
   bool private isTakerGetIncome;
   bool private isMakerRedemption;
   bool private isTakerRedemption;
@@ -31,25 +32,26 @@ contract sol_job_program {
   @payer(payer)
   constructor(
     address _platformPubKey,
-    uint64 _totalLamports,
-    uint64 _depositLamports
+    uint64 _caseAmountLamports,
+    uint64 _makerDepositLamports
   ) {
     platformPubKey = _platformPubKey;
     makerPubKey = tx.accounts.payer.key;
-    totalLamports = _totalLamports;
-    depositLamports = _depositLamports;
+    caseAmountLamports = _caseAmountLamports;
+    makerDepositLamports = _makerDepositLamports;
     SystemInstruction.transfer(
-      tx.accounts.payer.key, tx.accounts.dataAccount.key, depositLamports
+      tx.accounts.payer.key, tx.accounts.dataAccount.key, makerDepositLamports
     );
     status = Status.Pending;
   }
 
   @mutableSigner(signer)
-  function takerTakeCase() external {
+  function takerTakeCase(uint64 _takerDepositLamports) external {
     require(status == Status.Pending, "NOT_ALLOW_TAKE");
     takerPubKey = tx.accounts.signer.key;
+    takerDepositLamports = _takerDepositLamports;
     SystemInstruction.transfer(
-      takerPubKey, tx.accounts.dataAccount.key, depositLamports
+      takerPubKey, tx.accounts.dataAccount.key, takerDepositLamports
     );
     status = Status.Taken;
   }
@@ -59,7 +61,7 @@ contract sol_job_program {
     require(status == Status.Taken, "NOT_ALLOW_COMPLETE");
     require(tx.accounts.signer.key == makerPubKey, "INVALID_MAKER");
     address dataAccountPubKey = tx.accounts.dataAccount.key;
-    SystemInstruction.transfer(makerPubKey, dataAccountPubKey, totalLamports);
+    SystemInstruction.transfer(makerPubKey, dataAccountPubKey, caseAmountLamports);
     isTakerGetIncome = false;
     isMakerRedemption = false;
     isTakerRedemption = false;
@@ -73,8 +75,8 @@ contract sol_job_program {
       "NOT_ALLOW_GET_INCOME"
     );
     require(tx.accounts.signer.key == takerPubKey, "INVALID_TAKER");
-    tx.accounts.dataAccount.lamports -= totalLamports * 99 / 100;
-    tx.accounts.signer.lamports += totalLamports * 99 / 100;
+    tx.accounts.dataAccount.lamports -= caseAmountLamports * 99 / 100;
+    tx.accounts.signer.lamports += caseAmountLamports * 99 / 100;
     isTakerGetIncome = true;
   }
 
@@ -89,8 +91,8 @@ contract sol_job_program {
       "NOT_ALLOW_REDEMPTION_DEPOSIT"
     );
     require(tx.accounts.signer.key == makerPubKey, "INVALID_MAKER");
-    tx.accounts.dataAccount.lamports -= depositLamports;
-    tx.accounts.signer.lamports += depositLamports;
+    tx.accounts.dataAccount.lamports -= makerDepositLamports;
+    tx.accounts.signer.lamports += makerDepositLamports;
     isMakerRedemption = true;
   }
 
@@ -105,8 +107,8 @@ contract sol_job_program {
       "NOT_ALLOW_REDEMPTION_DEPOSIT"
     );
     require(tx.accounts.signer.key == takerPubKey, "INVALID_TAKER");
-    tx.accounts.dataAccount.lamports -= depositLamports;
-    tx.accounts.signer.lamports += depositLamports;
+    tx.accounts.dataAccount.lamports -= takerDepositLamports;
+    tx.accounts.signer.lamports += takerDepositLamports;
     isTakerRedemption = true;
   }
 
@@ -127,8 +129,8 @@ contract sol_job_program {
     );
     require(tx.accounts.signer.key == platformPubKey, "INVALID_PLATFORM");
     if (isCompletionAsExpected) {
-      tx.accounts.dataAccount.lamports -= totalLamports * 1 / 100;
-      tx.accounts.signer.lamports += totalLamports * 1 / 100;
+      tx.accounts.dataAccount.lamports -= caseAmountLamports * 1 / 100;
+      tx.accounts.signer.lamports += caseAmountLamports * 1 / 100;
     }
     status = Status.Closed;
   }
@@ -157,8 +159,14 @@ contract sol_job_program {
       "NOT_ALLOW_RECEIVE_COMPENSATION"
     );
     require(tx.accounts.signer.key == indemniteePubKey, "INVALID_INDEMITEE");
-    tx.accounts.dataAccount.lamports -= depositLamports;
-    tx.accounts.signer.lamports += depositLamports;
+    if (indemnitee == Indemnitee.Maker) {
+      tx.accounts.dataAccount.lamports -= takerDepositLamports;
+      tx.accounts.signer.lamports += takerDepositLamports;
+    }
+    if (indemnitee == Indemnitee.Taker) {
+      tx.accounts.dataAccount.lamports -= makerDepositLamports;
+      tx.accounts.signer.lamports += makerDepositLamports;
+    }
     isIndemniteeReceived = true;
   }
 }

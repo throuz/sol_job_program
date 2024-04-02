@@ -46,29 +46,33 @@ describe("transfer-sol", async () => {
     });
   };
 
-  it("Airdrop platform, maker and taker", async () => {
+  const caseAmountLamports = new anchor.BN(1 * anchor.web3.LAMPORTS_PER_SOL);
+  const makerDepositLamports = new anchor.BN(
+    0.3 * anchor.web3.LAMPORTS_PER_SOL
+  );
+  const takerDepositLamports = new anchor.BN(
+    0.2 * anchor.web3.LAMPORTS_PER_SOL
+  );
+
+  it("This test is for indemnitee taker, case amount: 1 SOL, maker deposit: 0.3 SOL, taker deposit: 0.2 SOL", async () => {
     await requestAirdrop(
       platformAccount.publicKey,
-      1 * anchor.web3.LAMPORTS_PER_SOL
+      10 * anchor.web3.LAMPORTS_PER_SOL
     );
     await requestAirdrop(
       makerAccount.publicKey,
-      1 * anchor.web3.LAMPORTS_PER_SOL
+      10 * anchor.web3.LAMPORTS_PER_SOL
     );
     await requestAirdrop(
       takerAccount.publicKey,
-      1 * anchor.web3.LAMPORTS_PER_SOL
+      10 * anchor.web3.LAMPORTS_PER_SOL
     );
     await checkBalances();
   });
 
   it("Maker create case", async () => {
-    const budgetLamports = new anchor.BN(0.1 * anchor.web3.LAMPORTS_PER_SOL);
-    const securityDepositLamports = new anchor.BN(
-      0.03 * anchor.web3.LAMPORTS_PER_SOL
-    );
     await program.methods
-      .new(platformAccount.publicKey, budgetLamports, securityDepositLamports)
+      .new(platformAccount.publicKey, caseAmountLamports, makerDepositLamports)
       .accounts({
         payer: makerAccount.publicKey,
         dataAccount: dataAccount.publicKey,
@@ -80,7 +84,7 @@ describe("transfer-sol", async () => {
 
   it("Taker take case", async () => {
     await program.methods
-      .takerTakeCase()
+      .takerTakeCase(takerDepositLamports)
       .accounts({
         signer: takerAccount.publicKey,
         dataAccount: dataAccount.publicKey,
