@@ -83,7 +83,7 @@ contract sol_job_program {
     bool isCompletionAsExpected =
       status == Status.Completed && isMakerRedemption == false;
     bool isForcedCompletionAsExpected =
-      status == Status.Completed && isMakerRedemption == false;
+      status == Status.ForceCompleted && isMakerRedemption == false;
     require(
       isCompletionAsExpected || isForcedCompletionAsExpected,
       "NOT_ALLOW_REDEMPTION_DEPOSIT"
@@ -99,7 +99,7 @@ contract sol_job_program {
     bool isCompletionAsExpected =
       status == Status.Completed && isTakerRedemption == false;
     bool isForcedCompletionAsExpected =
-      status == Status.Completed && isTakerRedemption == false;
+      status == Status.ForceCompleted && isTakerRedemption == false;
     require(
       isCompletionAsExpected || isForcedCompletionAsExpected,
       "NOT_ALLOW_REDEMPTION_DEPOSIT"
@@ -126,8 +126,10 @@ contract sol_job_program {
       isCompletionAsExpected || isForcedCompletionAsExpected, "NOT_ALLOW_CLOSE"
     );
     require(tx.accounts.signer.key == platformPubKey, "INVALID_PLATFORM");
-    tx.accounts.dataAccount.lamports -= totalLamports * 1 / 100;
-    tx.accounts.signer.lamports += totalLamports * 1 / 100;
+    if (isCompletionAsExpected) {
+      tx.accounts.dataAccount.lamports -= totalLamports * 1 / 100;
+      tx.accounts.signer.lamports += totalLamports * 1 / 100;
+    }
     status = Status.Closed;
   }
 
