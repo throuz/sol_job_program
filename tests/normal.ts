@@ -3,6 +3,8 @@ import { Program } from "@coral-xyz/anchor";
 import { SolJobProgram } from "../target/types/sol_job_program";
 
 describe("transfer-sol", async () => {
+  const SOL = anchor.web3.LAMPORTS_PER_SOL;
+
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
@@ -13,8 +15,8 @@ describe("transfer-sol", async () => {
 
   const dataAccount = anchor.web3.Keypair.generate();
   const platformAccount = anchor.web3.Keypair.generate();
-  const makerAccount = anchor.web3.Keypair.generate();
-  const takerAccount = anchor.web3.Keypair.generate();
+  const expertAccount = anchor.web3.Keypair.generate();
+  const clientAccount = anchor.web3.Keypair.generate();
 
   const checkBalances = async () => {
     const getBalance = (publicKey: anchor.web3.PublicKey) => {
@@ -22,15 +24,15 @@ describe("transfer-sol", async () => {
     };
     const dataAccountBalance = await getBalance(dataAccount.publicKey);
     const platformAccountBalance = await getBalance(platformAccount.publicKey);
-    const makerAccountBalance = await getBalance(makerAccount.publicKey);
-    const takerAccountBalance = await getBalance(takerAccount.publicKey);
+    const expertAccountBalance = await getBalance(expertAccount.publicKey);
+    const clientAccountBalance = await getBalance(clientAccount.publicKey);
     const logBalance = (name: string, balance: number) => {
-      console.log(name, balance / anchor.web3.LAMPORTS_PER_SOL);
+      console.log(name, balance / SOL);
     };
     logBalance("dataAccountBalance", dataAccountBalance);
     logBalance("platformAccountBalance", platformAccountBalance);
-    logBalance("makerAccountBalance", makerAccountBalance);
-    logBalance("takerAccountBalance", takerAccountBalance);
+    logBalance("expertAccountBalance", expertAccountBalance);
+    logBalance("clientAccountBalance", clientAccountBalance);
   };
 
   const requestAirdrop = async (
@@ -46,98 +48,85 @@ describe("transfer-sol", async () => {
     });
   };
 
-  const caseAmountLamports = new anchor.BN(1 * anchor.web3.LAMPORTS_PER_SOL);
-  const makerDepositLamports = new anchor.BN(
-    0.3 * anchor.web3.LAMPORTS_PER_SOL
-  );
-  const takerDepositLamports = new anchor.BN(
-    0.2 * anchor.web3.LAMPORTS_PER_SOL
-  );
+  const caseAmountLamports = new anchor.BN(1 * SOL);
+  const expertDepositLamports = new anchor.BN(0.3 * SOL);
+  const clientDepositLamports = new anchor.BN(0.2 * SOL);
 
-  it("This test is for normal process, case amount: 1 SOL, maker deposit: 0.3 SOL, taker deposit: 0.2 SOL", async () => {
-    await requestAirdrop(
-      platformAccount.publicKey,
-      10 * anchor.web3.LAMPORTS_PER_SOL
-    );
-    await requestAirdrop(
-      makerAccount.publicKey,
-      10 * anchor.web3.LAMPORTS_PER_SOL
-    );
-    await requestAirdrop(
-      takerAccount.publicKey,
-      10 * anchor.web3.LAMPORTS_PER_SOL
-    );
+  it("This test is for normal process, case amount: 1 SOL, expert deposit: 0.3 SOL, client deposit: 0.2 SOL", async () => {
+    await requestAirdrop(platformAccount.publicKey, 10 * SOL);
+    await requestAirdrop(expertAccount.publicKey, 10 * SOL);
+    await requestAirdrop(clientAccount.publicKey, 10 * SOL);
     await checkBalances();
   });
 
-  it("Maker create case", async () => {
+  it("Expert create case", async () => {
     await program.methods
-      .new(platformAccount.publicKey, caseAmountLamports, makerDepositLamports)
+      .new(platformAccount.publicKey, caseAmountLamports, expertDepositLamports)
       .accounts({
-        payer: makerAccount.publicKey,
+        payer: expertAccount.publicKey,
         dataAccount: dataAccount.publicKey,
       })
-      .signers([makerAccount, dataAccount])
+      .signers([expertAccount, dataAccount])
       .rpc();
     await checkBalances();
   });
 
-  it("Taker take case", async () => {
+  it("Client take case", async () => {
     await program.methods
-      .takerTakeCase(takerDepositLamports)
+      .clientTakeCase(clientDepositLamports)
       .accounts({
-        signer: takerAccount.publicKey,
+        signer: clientAccount.publicKey,
         dataAccount: dataAccount.publicKey,
       })
-      .signers([takerAccount])
+      .signers([clientAccount])
       .rpc();
     await checkBalances();
   });
 
-  it("Maker confirm case complete", async () => {
+  it("Expert confirm case complete", async () => {
     await program.methods
-      .makerConfirmCaseComplete()
+      .expertConfirmCaseComplete()
       .accounts({
-        signer: makerAccount.publicKey,
+        signer: expertAccount.publicKey,
         dataAccount: dataAccount.publicKey,
       })
-      .signers([makerAccount])
+      .signers([expertAccount])
       .rpc();
     await checkBalances();
   });
 
-  it("Taker get income", async () => {
+  it("Client get income", async () => {
     await program.methods
-      .takerGetIncome()
+      .clientGetIncome()
       .accounts({
-        signer: takerAccount.publicKey,
+        signer: clientAccount.publicKey,
         dataAccount: dataAccount.publicKey,
       })
-      .signers([takerAccount])
+      .signers([clientAccount])
       .rpc();
     await checkBalances();
   });
 
-  it("Maker redemption deposit", async () => {
+  it("Expert redemption deposit", async () => {
     await program.methods
-      .makerRedemptionDeposit()
+      .expertRedemptionDeposit()
       .accounts({
-        signer: makerAccount.publicKey,
+        signer: expertAccount.publicKey,
         dataAccount: dataAccount.publicKey,
       })
-      .signers([makerAccount])
+      .signers([expertAccount])
       .rpc();
     await checkBalances();
   });
 
-  it("Taker redemption deposit", async () => {
+  it("Client redemption deposit", async () => {
     await program.methods
-      .takerRedemptionDeposit()
+      .clientRedemptionDeposit()
       .accounts({
-        signer: takerAccount.publicKey,
+        signer: clientAccount.publicKey,
         dataAccount: dataAccount.publicKey,
       })
-      .signers([takerAccount])
+      .signers([clientAccount])
       .rpc();
     await checkBalances();
   });
