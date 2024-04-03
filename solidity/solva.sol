@@ -17,9 +17,9 @@ contract solva {
   }
 
   enum Status {
-    Pending,
+    Created,
     Canceled,
-    Active,
+    Activated,
     ForceClosed,
     Compensated,
     Completed,
@@ -46,12 +46,12 @@ contract solva {
         expertDepositLamports
       );
     }
-    status = Status.Pending;
+    status = Status.Created;
   }
 
   @mutableSigner(signer)
   function expertCancelCase() external {
-    require(status == Status.Pending);
+    require(status == Status.Created);
     require(tx.accounts.signer.key == expertPubKey);
     if (expertDepositLamports > 0) {
       tx.accounts.dataAccount.lamports -= expertDepositLamports;
@@ -61,8 +61,8 @@ contract solva {
   }
 
   @mutableSigner(signer)
-  function clientActiveCase(uint64 _clientDepositLamports) external {
-    require(status == Status.Pending);
+  function clientActivateCase(uint64 _clientDepositLamports) external {
+    require(status == Status.Created);
     require(clientDepositLamports == _clientDepositLamports);
     clientPubKey = tx.accounts.signer.key;
     if (clientDepositLamports > 0) {
@@ -72,12 +72,12 @@ contract solva {
         clientDepositLamports
       );
     }
-    status = Status.Active;
+    status = Status.Activated;
   }
 
   @mutableSigner(signer)
   function platformForceCloseCaseForExpert() external {
-    require(status == Status.Active);
+    require(status == Status.Activated);
     require(tx.accounts.signer.key == platformPubKey);
     indemniteePubKey = expertPubKey;
     status = Status.ForceClosed;
@@ -85,7 +85,7 @@ contract solva {
 
   @mutableSigner(signer)
   function platformForceCloseCaseForClient() external {
-    require(status == Status.Active);
+    require(status == Status.Activated);
     require(tx.accounts.signer.key == platformPubKey);
     indemniteePubKey = clientPubKey;
     status = Status.ForceClosed;
@@ -123,7 +123,7 @@ contract solva {
 
   @mutableSigner(signer)
   function clientCompleteCase() external {
-    require(status == Status.Active);
+    require(status == Status.Activated);
     require(tx.accounts.signer.key == clientPubKey);
     SystemInstruction.transfer(
       tx.accounts.signer.key,

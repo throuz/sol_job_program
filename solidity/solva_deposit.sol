@@ -18,9 +18,9 @@ contract solva_deposit {
   }
 
   enum Status {
-    Pending,
+    Created,
     Canceled,
-    Active,
+    Activated,
     Expired,
     ForceClosed,
     Compensated,
@@ -50,12 +50,12 @@ contract solva_deposit {
         expertDepositLamports
       );
     }
-    status = Status.Pending;
+    status = Status.Created;
   }
 
   @mutableSigner(signer)
   function expertCancelCase() external {
-    require(status == Status.Pending);
+    require(status == Status.Created);
     require(tx.accounts.signer.key == expertPubKey);
     if (expertDepositLamports > 0) {
       tx.accounts.dataAccount.lamports -= expertDepositLamports;
@@ -65,8 +65,8 @@ contract solva_deposit {
   }
 
   @mutableSigner(signer)
-  function clientActiveCase(uint64 _clientDepositLamports) external {
-    require(status == Status.Pending);
+  function clientActivateCase(uint64 _clientDepositLamports) external {
+    require(status == Status.Created);
     require(clientDepositLamports == _clientDepositLamports);
     clientPubKey = tx.accounts.signer.key;
     if (clientDepositLamports > 0) {
@@ -76,12 +76,12 @@ contract solva_deposit {
         clientDepositLamports
       );
     }
-    status = Status.Active;
+    status = Status.Activated;
   }
 
   @mutableSigner(signer)
   function expertExpireCase() external {
-    require(status == Status.Active);
+    require(status == Status.Activated);
     require(block.timestamp > expirationTimestamp);
     require(tx.accounts.signer.key == expertPubKey);
     if (expertDepositLamports > 0) {
@@ -97,7 +97,7 @@ contract solva_deposit {
 
   @mutableSigner(signer)
   function platformForceCloseCaseForExpert() external {
-    require(status == Status.Active);
+    require(status == Status.Activated);
     require(tx.accounts.signer.key == platformPubKey);
     indemniteePubKey = expertPubKey;
     status = Status.ForceClosed;
@@ -105,7 +105,7 @@ contract solva_deposit {
 
   @mutableSigner(signer)
   function platformForceCloseCaseForClient() external {
-    require(status == Status.Active);
+    require(status == Status.Activated);
     require(tx.accounts.signer.key == platformPubKey);
     indemniteePubKey = clientPubKey;
     status = Status.ForceClosed;
@@ -143,7 +143,7 @@ contract solva_deposit {
 
   @mutableSigner(signer)
   function clientCompleteCase() external {
-    require(status == Status.Active);
+    require(status == Status.Activated);
     require(tx.accounts.signer.key == clientPubKey);
     SystemInstruction.transfer(
       tx.accounts.signer.key, tx.accounts.dataAccount.key, caseAmountLamports

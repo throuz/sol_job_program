@@ -74,12 +74,12 @@ describe("transfer-sol", async () => {
       .signers([expertAccount, dataAccount])
       .rpc();
     await checkBalances();
-    console.log("Status: Pending");
+    console.log("Status: Created");
   });
 
   it("Client active case", async () => {
     await program.methods
-      .clientActiveCase(clientDepositLamports)
+      .clientActivateCase(clientDepositLamports)
       .accounts({
         signer: clientAccount.publicKey,
         dataAccount: dataAccount.publicKey,
@@ -87,7 +87,7 @@ describe("transfer-sol", async () => {
       .signers([clientAccount])
       .rpc();
     await checkBalances();
-    console.log("Status: Active");
+    console.log("Status: Activated");
   });
 
   it("Client complete case", async () => {
