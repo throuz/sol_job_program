@@ -160,16 +160,11 @@ contract sol_job_program {
     tx.accounts.dataAccount.lamports -= caseAmountLamports * 99 / 100;
     tx.accounts.signer.lamports += caseAmountLamports * 99 / 100;
     isExpertGetIncome = true;
-  }
-
-  @mutableSigner(signer)
-  function expertRedeemDeposit() external {
-    require(status == Status.Completed);
-    require(isExpertRedeem == false);
-    require(tx.accounts.signer.key == expertPubKey);
-    tx.accounts.dataAccount.lamports -= expertDepositLamports;
-    tx.accounts.signer.lamports += expertDepositLamports;
-    isExpertRedeem = true;
+    if (isExpertRedeem == false) {
+      tx.accounts.dataAccount.lamports -= expertDepositLamports;
+      tx.accounts.signer.lamports += expertDepositLamports;
+      isExpertRedeem = true;
+    }
   }
 
   @mutableSigner(signer)
