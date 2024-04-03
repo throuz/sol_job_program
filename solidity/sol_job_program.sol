@@ -9,9 +9,6 @@ contract sol_job_program {
   uint64 private expertDepositLamports;
   uint64 private clientDepositLamports;
   uint64 private expirationTimestamp;
-  bool private isExpertGetIncome;
-  bool private isExpertRedeem;
-  bool private isClientRedeem;
   address private indemniteePubKey;
   Status private status;
 
@@ -28,6 +25,7 @@ contract sol_job_program {
     ForceClosed,
     Compensated,
     Completed,
+    GotIncome,
     Closed
   }
 
@@ -110,7 +108,7 @@ contract sol_job_program {
   }
 
   @mutableSigner(signer)
-  function expertCompensate() external {
+  function expertRecieveCompensation() external {
     require(status == Status.ForceClosed);
     require(tx.accounts.signer.key == indemniteePubKey);
     tx.accounts.dataAccount.lamports -= expertDepositLamports;
@@ -121,7 +119,7 @@ contract sol_job_program {
   }
 
   @mutableSigner(signer)
-  function clientCompensate() external {
+  function clientRecieveCompensation() external {
     require(status == Status.ForceClosed);
     require(tx.accounts.signer.key == indemniteePubKey);
     tx.accounts.dataAccount.lamports -= clientDepositLamports;
@@ -138,16 +136,9 @@ contract sol_job_program {
     SystemInstruction.transfer(
       tx.accounts.signer.key, tx.accounts.dataAccount.key, caseAmountLamports
     );
-    isExpertGetIncome = false;
-    if (expertDepositLamports > 0) {
-      isExpertRedeem = false;
-    } else {
-      isExpertRedeem = true;
-    }
     if (clientDepositLamports > 0) {
-      isClientRedeem = false;
-    } else {
-      isClientRedeem = true;
+      tx.accounts.dataAccount.lamports -= clientDepositLamports;
+      tx.accounts.signer.lamports += clientDepositLamports;
     }
     status = Status.Completed;
   }
@@ -155,34 +146,19 @@ contract sol_job_program {
   @mutableSigner(signer)
   function expertGetIncome() external {
     require(status == Status.Completed);
-    require(isExpertGetIncome == false);
     require(tx.accounts.signer.key == expertPubKey);
     tx.accounts.dataAccount.lamports -= caseAmountLamports * 99 / 100;
     tx.accounts.signer.lamports += caseAmountLamports * 99 / 100;
-    isExpertGetIncome = true;
-    if (isExpertRedeem == false) {
+    if (expertDepositLamports > 0) {
       tx.accounts.dataAccount.lamports -= expertDepositLamports;
       tx.accounts.signer.lamports += expertDepositLamports;
-      isExpertRedeem = true;
     }
-  }
-
-  @mutableSigner(signer)
-  function clientRedeemDeposit() external {
-    require(status == Status.Completed);
-    require(isClientRedeem == false);
-    require(tx.accounts.signer.key == clientPubKey);
-    tx.accounts.dataAccount.lamports -= clientDepositLamports;
-    tx.accounts.signer.lamports += clientDepositLamports;
-    isClientRedeem = true;
+    status = Status.GotIncome;
   }
 
   @mutableSigner(signer)
   function platformCloseCase() external {
-    require(status == Status.Completed);
-    require(isExpertGetIncome);
-    require(isExpertRedeem);
-    require(isClientRedeem);
+    require(status == Status.GotIncome);
     require(tx.accounts.signer.key == platformPubKey);
     tx.accounts.dataAccount.lamports -= caseAmountLamports * 1 / 100;
     tx.accounts.signer.lamports += caseAmountLamports * 1 / 100;
