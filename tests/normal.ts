@@ -22,13 +22,13 @@ describe("transfer-sol", async () => {
     const getBalance = (publicKey: anchor.web3.PublicKey) => {
       return connection.getBalance(publicKey);
     };
+    const logBalance = (name: string, balance: number) => {
+      console.log(name, balance / SOL);
+    };
     const dataAccountBalance = await getBalance(dataAccount.publicKey);
     const platformAccountBalance = await getBalance(platformAccount.publicKey);
     const expertAccountBalance = await getBalance(expertAccount.publicKey);
     const clientAccountBalance = await getBalance(clientAccount.publicKey);
-    const logBalance = (name: string, balance: number) => {
-      console.log(name, balance / SOL);
-    };
     logBalance("dataAccountBalance", dataAccountBalance);
     logBalance("platformAccountBalance", platformAccountBalance);
     logBalance("expertAccountBalance", expertAccountBalance);
@@ -51,8 +51,9 @@ describe("transfer-sol", async () => {
   const caseAmountLamports = new anchor.BN(1 * SOL);
   const expertDepositLamports = new anchor.BN(0.3 * SOL);
   const clientDepositLamports = new anchor.BN(0.2 * SOL);
+  const expirationTimestamp = new anchor.BN(Date.now() + 3 * 30 * 24 * 60 * 60 * 1000);
 
-  it("This test is for normal process, case amount: 1 SOL, expert deposit: 0.3 SOL, client deposit: 0.2 SOL", async () => {
+  it("This test is for normal process, case amount: 1 SOL, expert deposit: 0.3 SOL, client deposit: 0.2 SOL, expiration: 3 month later", async () => {
     await requestAirdrop(platformAccount.publicKey, 10 * SOL);
     await requestAirdrop(expertAccount.publicKey, 10 * SOL);
     await requestAirdrop(clientAccount.publicKey, 10 * SOL);
@@ -61,7 +62,13 @@ describe("transfer-sol", async () => {
 
   it("Expert create case", async () => {
     await program.methods
-      .new(platformAccount.publicKey, caseAmountLamports, expertDepositLamports)
+      .new(
+        platformAccount.publicKey,
+        caseAmountLamports,
+        expertDepositLamports,
+        clientDepositLamports,
+        expirationTimestamp
+      )
       .accounts({
         payer: expertAccount.publicKey,
         dataAccount: dataAccount.publicKey,
@@ -71,9 +78,9 @@ describe("transfer-sol", async () => {
     await checkBalances();
   });
 
-  it("Client take case", async () => {
+  it("Client active case", async () => {
     await program.methods
-      .clientTakeCase(clientDepositLamports)
+      .clientActiveCase(clientDepositLamports)
       .accounts({
         signer: clientAccount.publicKey,
         dataAccount: dataAccount.publicKey,
@@ -83,50 +90,26 @@ describe("transfer-sol", async () => {
     await checkBalances();
   });
 
-  it("Expert confirm case complete", async () => {
+  it("Client complete case", async () => {
     await program.methods
-      .expertConfirmCaseComplete()
+      .clientCompleteCase()
+      .accounts({
+        signer: clientAccount.publicKey,
+        dataAccount: dataAccount.publicKey,
+      })
+      .signers([clientAccount])
+      .rpc();
+    await checkBalances();
+  });
+
+  it("Expert get income", async () => {
+    await program.methods
+      .expertGetIncome()
       .accounts({
         signer: expertAccount.publicKey,
         dataAccount: dataAccount.publicKey,
       })
       .signers([expertAccount])
-      .rpc();
-    await checkBalances();
-  });
-
-  it("Client get income", async () => {
-    await program.methods
-      .clientGetIncome()
-      .accounts({
-        signer: clientAccount.publicKey,
-        dataAccount: dataAccount.publicKey,
-      })
-      .signers([clientAccount])
-      .rpc();
-    await checkBalances();
-  });
-
-  it("Expert redemption deposit", async () => {
-    await program.methods
-      .expertRedemptionDeposit()
-      .accounts({
-        signer: expertAccount.publicKey,
-        dataAccount: dataAccount.publicKey,
-      })
-      .signers([expertAccount])
-      .rpc();
-    await checkBalances();
-  });
-
-  it("Client redemption deposit", async () => {
-    await program.methods
-      .clientRedemptionDeposit()
-      .accounts({
-        signer: clientAccount.publicKey,
-        dataAccount: dataAccount.publicKey,
-      })
-      .signers([clientAccount])
       .rpc();
     await checkBalances();
   });
