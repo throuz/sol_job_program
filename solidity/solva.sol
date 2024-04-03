@@ -1,7 +1,7 @@
 import "../libraries/system_instruction.sol";
 
 @program_id("D5Y1bmRzxQK8RSTGbxMBHkfa2DEmxZU2qcoiEX1PABeJ")
-contract sol_job_program {
+contract solva {
   address private platformPubKey;
   address private expertPubKey;
   address private clientPubKey;

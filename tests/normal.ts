@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { SolJobProgram } from "../target/types/sol_job_program";
+import { Solva } from "../target/types/solva";
 
 describe("transfer-sol", async () => {
   const SOL = anchor.web3.LAMPORTS_PER_SOL;
@@ -11,7 +11,7 @@ describe("transfer-sol", async () => {
   const wallet = provider.wallet;
   const connection = provider.connection;
 
-  const program = anchor.workspace.SolJobProgram as Program<SolJobProgram>;
+  const program = anchor.workspace.Solva as Program<Solva>;
 
   const dataAccount = anchor.web3.Keypair.generate();
   const platformAccount = anchor.web3.Keypair.generate();
