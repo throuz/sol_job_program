@@ -74,6 +74,7 @@ describe("transfer-sol", async () => {
       .signers([expertAccount, dataAccount])
       .rpc();
     await checkBalances();
+    console.log("Status: Pending");
   });
 
   it("Expert cancel case", async () => {
@@ -86,5 +87,6 @@ describe("transfer-sol", async () => {
       .signers([expertAccount])
       .rpc();
     await checkBalances();
+    console.log("Status: Canceled");
   });
 });

@@ -1,6 +1,6 @@
 import "../libraries/system_instruction.sol";
 
-@program_id("D5Y1bmRzxQK8RSTGbxMBHkfa2DEmxZU2qcoiEX1PABeJ")
+@program_id("DWhjLw1136PfojRSmQoVgJx1kfS6cPtebHuyaZQZ7WX1")
 contract solva_deposit {
   address private platformPubKey;
   address private expertPubKey;

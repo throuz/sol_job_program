@@ -74,6 +74,7 @@ describe("transfer-sol", async () => {
       .signers([expertAccount, dataAccount])
       .rpc();
     await checkBalances();
+    console.log("Status: Pending");
   });
 
   it("Client active case", async () => {
@@ -86,6 +87,7 @@ describe("transfer-sol", async () => {
       .signers([clientAccount])
       .rpc();
     await checkBalances();
+    console.log("Status: Active");
   });
 
   it("Platform force close case for client", async () => {
@@ -98,9 +100,10 @@ describe("transfer-sol", async () => {
       .signers([platformAccount])
       .rpc();
     await checkBalances();
+    console.log("Status: ForceClosed");
   });
 
-  it("Expert recieve compensation", async () => {
+  it("Client recieve compensation", async () => {
     await program.methods
       .clientRecieveCompensation()
       .accounts({
@@ -110,5 +113,6 @@ describe("transfer-sol", async () => {
       .signers([clientAccount])
       .rpc();
     await checkBalances();
+    console.log("Status: Compensated");
   });
 });
