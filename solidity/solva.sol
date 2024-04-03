@@ -146,12 +146,10 @@ contract solva {
     require(status == Status.Active);
     require(tx.accounts.signer.key == clientPubKey);
     SystemInstruction.transfer(
-      tx.accounts.signer.key, tx.accounts.dataAccount.key, caseAmountLamports
+      tx.accounts.signer.key,
+      tx.accounts.dataAccount.key,
+      caseAmountLamports - clientDepositLamports
     );
-    if (clientDepositLamports > 0) {
-      tx.accounts.dataAccount.lamports -= clientDepositLamports;
-      tx.accounts.signer.lamports += clientDepositLamports;
-    }
     status = Status.Completed;
   }
 
