@@ -12,11 +12,6 @@ contract solva_deposit {
   address private indemniteePubKey;
   Status private status;
 
-  enum Indemnitee {
-    Expert,
-    Client
-  }
-
   enum Status {
     Created,
     Canceled,
