@@ -1,6 +1,7 @@
-# Sol Job Program
+# Solva
 
-Solana program for Sol Job.
+Solana program for Solva.
+Solva links clients with skilled experts transparently and securely.
 
 ## Usage
 
