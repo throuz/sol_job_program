@@ -52,7 +52,7 @@ describe("transfer-sol", async () => {
   const expertDepositLamports = new anchor.BN(0.3 * SOL);
   const clientDepositLamports = new anchor.BN(0.2 * SOL);
 
-  it("This test is for normal process, case amount: 1 SOL, expert deposit: 0.3 SOL, client deposit: 0.2 SOL", async () => {
+  it("This test is for expert cancel process, case amount: 1 SOL, expert deposit: 0.3 SOL, client deposit: 0.2 SOL", async () => {
     await requestAirdrop(platformAccount.publicKey, 10 * SOL);
     await requestAirdrop(expertAccount.publicKey, 10 * SOL);
     await requestAirdrop(clientAccount.publicKey, 10 * SOL);
@@ -76,50 +76,14 @@ describe("transfer-sol", async () => {
     await checkBalances();
   });
 
-  it("Client active case", async () => {
+  it("Expert cancel case", async () => {
     await program.methods
-      .clientActiveCase(clientDepositLamports)
-      .accounts({
-        signer: clientAccount.publicKey,
-        dataAccount: dataAccount.publicKey,
-      })
-      .signers([clientAccount])
-      .rpc();
-    await checkBalances();
-  });
-
-  it("Client complete case", async () => {
-    await program.methods
-      .clientCompleteCase()
-      .accounts({
-        signer: clientAccount.publicKey,
-        dataAccount: dataAccount.publicKey,
-      })
-      .signers([clientAccount])
-      .rpc();
-    await checkBalances();
-  });
-
-  it("Expert get income", async () => {
-    await program.methods
-      .expertGetIncome()
+      .expertCancelCase()
       .accounts({
         signer: expertAccount.publicKey,
         dataAccount: dataAccount.publicKey,
       })
       .signers([expertAccount])
-      .rpc();
-    await checkBalances();
-  });
-
-  it("Platform close case", async () => {
-    await program.methods
-      .platformCloseCase()
-      .accounts({
-        signer: platformAccount.publicKey,
-        dataAccount: dataAccount.publicKey,
-      })
-      .signers([platformAccount])
       .rpc();
     await checkBalances();
   });

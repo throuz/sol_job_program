@@ -8,7 +8,6 @@ contract solva {
   uint64 private caseAmountLamports;
   uint64 private expertDepositLamports;
   uint64 private clientDepositLamports;
-  uint64 private expirationTimestamp;
   address private indemniteePubKey;
   Status private status;
 
@@ -21,7 +20,6 @@ contract solva {
     Pending,
     Canceled,
     Active,
-    Expired,
     ForceClosed,
     Compensated,
     Completed,
@@ -34,15 +32,13 @@ contract solva {
     address _platformPubKey,
     uint64 _caseAmountLamports,
     uint64 _expertDepositLamports,
-    uint64 _clientDepositLamports,
-    uint64 _expirationTimestamp
+    uint64 _clientDepositLamports
   ) {
     platformPubKey = _platformPubKey;
     expertPubKey = tx.accounts.payer.key;
     caseAmountLamports = _caseAmountLamports;
     expertDepositLamports = _expertDepositLamports;
     clientDepositLamports = _clientDepositLamports;
-    expirationTimestamp = _expirationTimestamp;
     if (expertDepositLamports > 0) {
       SystemInstruction.transfer(
         tx.accounts.payer.key,
@@ -77,22 +73,6 @@ contract solva {
       );
     }
     status = Status.Active;
-  }
-
-  @mutableSigner(signer)
-  function expertExpireCase() external {
-    require(status == Status.Active);
-    require(block.timestamp > expirationTimestamp);
-    require(tx.accounts.signer.key == expertPubKey);
-    if (expertDepositLamports > 0) {
-      tx.accounts.dataAccount.lamports -= expertDepositLamports;
-      tx.accounts.signer.lamports += expertDepositLamports;
-    }
-    if (clientDepositLamports > 0) {
-      tx.accounts.dataAccount.lamports -= clientDepositLamports;
-      tx.accounts.signer.lamports += clientDepositLamports;
-    }
-    status = Status.Expired;
   }
 
   @mutableSigner(signer)
