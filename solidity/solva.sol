@@ -87,22 +87,7 @@ contract solva {
   }
 
   @mutableSigner(signer)
-  function expertRecieveCompensation() external {
-    require(status == Status.ForceClosed);
-    require(tx.accounts.signer.key == indemniteePubKey);
-    if (expertDepositLamports > 0) {
-      tx.accounts.dataAccount.lamports -= expertDepositLamports;
-      tx.accounts.signer.lamports += expertDepositLamports;
-    }
-    if (clientDepositLamports > 0) {
-      tx.accounts.dataAccount.lamports -= clientDepositLamports;
-      tx.accounts.signer.lamports += clientDepositLamports;
-    }
-    status = Status.Compensated;
-  }
-
-  @mutableSigner(signer)
-  function clientRecieveCompensation() external {
+  function indemniteeRecieveCompensation() external {
     require(status == Status.ForceClosed);
     require(tx.accounts.signer.key == indemniteePubKey);
     if (expertDepositLamports > 0) {

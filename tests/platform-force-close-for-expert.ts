@@ -106,7 +106,7 @@ describe("transfer-sol", async () => {
 
   it("Expert recieve compensation", async () => {
     await program.methods
-      .expertRecieveCompensation()
+      .indemniteeRecieveCompensation()
       .accounts({
         signer: expertAccount.publicKey,
         dataAccount: dataAccount.publicKey,
