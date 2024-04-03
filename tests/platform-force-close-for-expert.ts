@@ -52,11 +52,12 @@ describe("transfer-sol", async () => {
   const expertDepositLamports = new anchor.BN(0.3 * SOL);
   const clientDepositLamports = new anchor.BN(0.2 * SOL);
 
-  it("This test is for platform force close for expert process, case amount: 1 SOL, expert deposit: 0.3 SOL, client deposit: 0.2 SOL", async () => {
+  it("This test is for platform force close for expert process\n      case amount: 1 SOL\n      expert deposit: 0.3 SOL\n      client deposit: 0.2 SOL", async () => {
     await requestAirdrop(platformAccount.publicKey, 10 * SOL);
     await requestAirdrop(expertAccount.publicKey, 10 * SOL);
     await requestAirdrop(clientAccount.publicKey, 10 * SOL);
     await checkBalances();
+    console.log("Status: Nothing");
   });
 
   it("Expert create case", async () => {
