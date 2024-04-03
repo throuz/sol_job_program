@@ -84,10 +84,14 @@ contract sol_job_program {
     require(status == Status.Active);
     require(block.timestamp > expirationTimestamp);
     require(tx.accounts.signer.key == expertPubKey);
-    tx.accounts.dataAccount.lamports -= expertDepositLamports;
-    tx.accounts.signer.lamports += expertDepositLamports;
-    tx.accounts.dataAccount.lamports -= clientDepositLamports;
-    tx.accounts.signer.lamports += clientDepositLamports;
+    if (expertDepositLamports > 0) {
+      tx.accounts.dataAccount.lamports -= expertDepositLamports;
+      tx.accounts.signer.lamports += expertDepositLamports;
+    }
+    if (clientDepositLamports > 0) {
+      tx.accounts.dataAccount.lamports -= clientDepositLamports;
+      tx.accounts.signer.lamports += clientDepositLamports;
+    }
     status = Status.Expired;
   }
 
@@ -111,10 +115,14 @@ contract sol_job_program {
   function expertRecieveCompensation() external {
     require(status == Status.ForceClosed);
     require(tx.accounts.signer.key == indemniteePubKey);
-    tx.accounts.dataAccount.lamports -= expertDepositLamports;
-    tx.accounts.signer.lamports += expertDepositLamports;
-    tx.accounts.dataAccount.lamports -= clientDepositLamports;
-    tx.accounts.signer.lamports += clientDepositLamports;
+    if (expertDepositLamports > 0) {
+      tx.accounts.dataAccount.lamports -= expertDepositLamports;
+      tx.accounts.signer.lamports += expertDepositLamports;
+    }
+    if (clientDepositLamports > 0) {
+      tx.accounts.dataAccount.lamports -= clientDepositLamports;
+      tx.accounts.signer.lamports += clientDepositLamports;
+    }
     status = Status.Compensated;
   }
 
@@ -122,10 +130,14 @@ contract sol_job_program {
   function clientRecieveCompensation() external {
     require(status == Status.ForceClosed);
     require(tx.accounts.signer.key == indemniteePubKey);
-    tx.accounts.dataAccount.lamports -= clientDepositLamports;
-    tx.accounts.signer.lamports += clientDepositLamports;
-    tx.accounts.dataAccount.lamports -= expertDepositLamports;
-    tx.accounts.signer.lamports += expertDepositLamports;
+    if (expertDepositLamports > 0) {
+      tx.accounts.dataAccount.lamports -= expertDepositLamports;
+      tx.accounts.signer.lamports += expertDepositLamports;
+    }
+    if (clientDepositLamports > 0) {
+      tx.accounts.dataAccount.lamports -= clientDepositLamports;
+      tx.accounts.signer.lamports += clientDepositLamports;
+    }
     status = Status.Compensated;
   }
 
