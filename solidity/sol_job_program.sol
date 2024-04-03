@@ -8,12 +8,11 @@ contract sol_job_program {
   uint64 private caseAmountLamports;
   uint64 private expertDepositLamports;
   uint64 private clientDepositLamports;
+  uint64 private expirationTimestamp;
   bool private isExpertGetIncome;
   bool private isExpertRedeem;
   bool private isClientRedeem;
-  Indemnitee private indemnitee;
   address private indemniteePubKey;
-  bool private isIndemniteeReceived;
   Status private status;
 
   enum Indemnitee {
@@ -23,12 +22,13 @@ contract sol_job_program {
 
   enum Status {
     Pending,
-    Cancelled,
+    Canceled,
     Active,
-    Expiration,
+    Expired,
+    ForceClosed,
+    Compensated,
     Completed,
-    Closed,
-    ForceCompleted
+    Closed
   }
 
   @payer(payer)
@@ -36,13 +36,15 @@ contract sol_job_program {
     address _platformPubKey,
     uint64 _caseAmountLamports,
     uint64 _expertDepositLamports,
-    uint64 _clientDepositLamports
+    uint64 _clientDepositLamports,
+    uint64 _expirationTimestamp
   ) {
     platformPubKey = _platformPubKey;
     expertPubKey = tx.accounts.payer.key;
     caseAmountLamports = _caseAmountLamports;
     expertDepositLamports = _expertDepositLamports;
     clientDepositLamports = _clientDepositLamports;
+    expirationTimestamp = _expirationTimestamp;
     if (expertDepositLamports > 0) {
       SystemInstruction.transfer(
         tx.accounts.payer.key,
@@ -55,29 +57,78 @@ contract sol_job_program {
 
   @mutableSigner(signer)
   function expertCancelCase() external {
-    require(tx.accounts.signer.key == expertPubKey);
     require(status == Status.Pending);
+    require(tx.accounts.signer.key == expertPubKey);
     if (expertDepositLamports > 0) {
-      SystemInstruction.transfer(
-        tx.accounts.dataAccount.key, expertPubKey, expertDepositLamports
-      );
+      tx.accounts.dataAccount.lamports -= expertDepositLamports;
+      tx.accounts.signer.lamports += expertDepositLamports;
     }
-    status = Status.Cancelled;
+    status = Status.Canceled;
   }
 
   @mutableSigner(signer)
   function clientActiveCase(uint64 _clientDepositLamports) external {
-    if (clientDepositLamports > 0) {
-      require(clientDepositLamports == _clientDepositLamports);
-    }
     require(status == Status.Pending);
+    require(clientDepositLamports == _clientDepositLamports);
     clientPubKey = tx.accounts.signer.key;
     if (clientDepositLamports > 0) {
       SystemInstruction.transfer(
-        clientPubKey, tx.accounts.dataAccount.key, clientDepositLamports
+        tx.accounts.signer.key,
+        tx.accounts.dataAccount.key,
+        clientDepositLamports
       );
     }
     status = Status.Active;
+  }
+
+  @mutableSigner(signer)
+  function expertExpireCase() external {
+    require(status == Status.Active);
+    require(block.timestamp > expirationTimestamp);
+    require(tx.accounts.signer.key == expertPubKey);
+    tx.accounts.dataAccount.lamports -= expertDepositLamports;
+    tx.accounts.signer.lamports += expertDepositLamports;
+    tx.accounts.dataAccount.lamports -= clientDepositLamports;
+    tx.accounts.signer.lamports += clientDepositLamports;
+    status = Status.Expired;
+  }
+
+  @mutableSigner(signer)
+  function platformForceCloseCaseForExpert() external {
+    require(status == Status.Active);
+    require(tx.accounts.signer.key == platformPubKey);
+    indemniteePubKey = expertPubKey;
+    status = Status.ForceClosed;
+  }
+
+  @mutableSigner(signer)
+  function platformForceCloseCaseForClient() external {
+    require(status == Status.Active);
+    require(tx.accounts.signer.key == platformPubKey);
+    indemniteePubKey = clientPubKey;
+    status = Status.ForceClosed;
+  }
+
+  @mutableSigner(signer)
+  function expertCompensate() external {
+    require(status == Status.ForceClosed);
+    require(tx.accounts.signer.key == indemniteePubKey);
+    tx.accounts.dataAccount.lamports -= expertDepositLamports;
+    tx.accounts.signer.lamports += expertDepositLamports;
+    tx.accounts.dataAccount.lamports -= clientDepositLamports;
+    tx.accounts.signer.lamports += clientDepositLamports;
+    status = Status.Compensated;
+  }
+
+  @mutableSigner(signer)
+  function clientCompensate() external {
+    require(status == Status.ForceClosed);
+    require(tx.accounts.signer.key == indemniteePubKey);
+    tx.accounts.dataAccount.lamports -= clientDepositLamports;
+    tx.accounts.signer.lamports += clientDepositLamports;
+    tx.accounts.dataAccount.lamports -= expertDepositLamports;
+    tx.accounts.signer.lamports += expertDepositLamports;
+    status = Status.Compensated;
   }
 
   @mutableSigner(signer)
@@ -85,7 +136,7 @@ contract sol_job_program {
     require(status == Status.Active);
     require(tx.accounts.signer.key == clientPubKey);
     SystemInstruction.transfer(
-      clientPubKey, tx.accounts.dataAccount.key, caseAmountLamports
+      tx.accounts.signer.key, tx.accounts.dataAccount.key, caseAmountLamports
     );
     isExpertGetIncome = false;
     if (expertDepositLamports > 0) {
@@ -103,7 +154,8 @@ contract sol_job_program {
 
   @mutableSigner(signer)
   function expertGetIncome() external {
-    require(status == Status.Completed && isExpertGetIncome == false);
+    require(status == Status.Completed);
+    require(isExpertGetIncome == false);
     require(tx.accounts.signer.key == expertPubKey);
     tx.accounts.dataAccount.lamports -= caseAmountLamports * 99 / 100;
     tx.accounts.signer.lamports += caseAmountLamports * 99 / 100;
@@ -112,11 +164,8 @@ contract sol_job_program {
 
   @mutableSigner(signer)
   function expertRedeemDeposit() external {
-    bool isCompletionAsExpected =
-      status == Status.Completed && isExpertRedeem == false;
-    bool isForcedCompletionAsExpected =
-      status == Status.ForceCompleted && isExpertRedeem == false;
-    require(isCompletionAsExpected || isForcedCompletionAsExpected);
+    require(status == Status.Completed);
+    require(isExpertRedeem == false);
     require(tx.accounts.signer.key == expertPubKey);
     tx.accounts.dataAccount.lamports -= expertDepositLamports;
     tx.accounts.signer.lamports += expertDepositLamports;
@@ -125,11 +174,8 @@ contract sol_job_program {
 
   @mutableSigner(signer)
   function clientRedeemDeposit() external {
-    bool isCompletionAsExpected =
-      status == Status.Completed && isClientRedeem == false;
-    bool isForcedCompletionAsExpected =
-      status == Status.ForceCompleted && isClientRedeem == false;
-    require(isCompletionAsExpected || isForcedCompletionAsExpected);
+    require(status == Status.Completed);
+    require(isClientRedeem == false);
     require(tx.accounts.signer.key == clientPubKey);
     tx.accounts.dataAccount.lamports -= clientDepositLamports;
     tx.accounts.signer.lamports += clientDepositLamports;
@@ -138,52 +184,13 @@ contract sol_job_program {
 
   @mutableSigner(signer)
   function platformCloseCase() external {
-    bool isCompletionAsExpected = status == Status.Completed
-      && isExpertGetIncome && isExpertRedeem && isClientRedeem;
-    bool isIndemniteeExpertAsExpected = status == Status.ForceCompleted
-      && indemnitee == Indemnitee.Expert && isExpertRedeem && isIndemniteeReceived;
-    bool isIndemniteeClientAsExpected = status == Status.ForceCompleted
-      && indemnitee == Indemnitee.Client && isClientRedeem && isIndemniteeReceived;
-    bool isForcedCompletionAsExpected =
-      isIndemniteeExpertAsExpected || isIndemniteeClientAsExpected;
-    require(isCompletionAsExpected || isForcedCompletionAsExpected);
+    require(status == Status.Completed);
+    require(isExpertGetIncome);
+    require(isExpertRedeem);
+    require(isClientRedeem);
     require(tx.accounts.signer.key == platformPubKey);
-    if (isCompletionAsExpected) {
-      tx.accounts.dataAccount.lamports -= caseAmountLamports * 1 / 100;
-      tx.accounts.signer.lamports += caseAmountLamports * 1 / 100;
-    }
+    tx.accounts.dataAccount.lamports -= caseAmountLamports * 1 / 100;
+    tx.accounts.signer.lamports += caseAmountLamports * 1 / 100;
     status = Status.Closed;
-  }
-
-  @mutableSigner(signer)
-  function platformForcedCaseComplete(Indemnitee _indemnitee) external {
-    require(status == Status.Active);
-    require(tx.accounts.signer.key == platformPubKey);
-    indemnitee = _indemnitee;
-    if (indemnitee == Indemnitee.Expert) {
-      isExpertRedeem = false;
-      indemniteePubKey = expertPubKey;
-    }
-    if (indemnitee == Indemnitee.Client) {
-      isClientRedeem = false;
-      indemniteePubKey = clientPubKey;
-    }
-    isIndemniteeReceived = false;
-    status = Status.ForceCompleted;
-  }
-
-  @mutableSigner(signer)
-  function indemniteeReceiveCompensation() external {
-    require(status == Status.ForceCompleted && isIndemniteeReceived == false);
-    require(tx.accounts.signer.key == indemniteePubKey);
-    if (indemnitee == Indemnitee.Expert) {
-      tx.accounts.dataAccount.lamports -= clientDepositLamports;
-      tx.accounts.signer.lamports += clientDepositLamports;
-    }
-    if (indemnitee == Indemnitee.Client) {
-      tx.accounts.dataAccount.lamports -= expertDepositLamports;
-      tx.accounts.signer.lamports += expertDepositLamports;
-    }
-    isIndemniteeReceived = true;
   }
 }
