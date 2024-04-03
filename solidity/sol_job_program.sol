@@ -3,27 +3,29 @@ import "../libraries/system_instruction.sol";
 @program_id("D5Y1bmRzxQK8RSTGbxMBHkfa2DEmxZU2qcoiEX1PABeJ")
 contract sol_job_program {
   address private platformPubKey;
-  address private makerPubKey;
-  address private takerPubKey;
+  address private expertPubKey;
+  address private clientPubKey;
   uint64 private caseAmountLamports;
-  uint64 private makerDepositLamports;
-  uint64 private takerDepositLamports;
-  bool private isTakerGetIncome;
-  bool private isMakerRedemption;
-  bool private isTakerRedemption;
+  uint64 private expertDepositLamports;
+  uint64 private clientDepositLamports;
+  bool private isExpertGetIncome;
+  bool private isExpertRedeem;
+  bool private isClientRedeem;
   Indemnitee private indemnitee;
   address private indemniteePubKey;
   bool private isIndemniteeReceived;
   Status private status;
 
   enum Indemnitee {
-    Maker,
-    Taker
+    Expert,
+    Client
   }
 
   enum Status {
     Pending,
-    Taken,
+    Cancelled,
+    Active,
+    Expiration,
     Completed,
     Closed,
     ForceCompleted
@@ -33,101 +35,119 @@ contract sol_job_program {
   constructor(
     address _platformPubKey,
     uint64 _caseAmountLamports,
-    uint64 _makerDepositLamports
+    uint64 _expertDepositLamports,
+    uint64 _clientDepositLamports
   ) {
     platformPubKey = _platformPubKey;
-    makerPubKey = tx.accounts.payer.key;
+    expertPubKey = tx.accounts.payer.key;
     caseAmountLamports = _caseAmountLamports;
-    makerDepositLamports = _makerDepositLamports;
-    SystemInstruction.transfer(
-      tx.accounts.payer.key, tx.accounts.dataAccount.key, makerDepositLamports
-    );
+    expertDepositLamports = _expertDepositLamports;
+    clientDepositLamports = _clientDepositLamports;
+    if (expertDepositLamports > 0) {
+      SystemInstruction.transfer(
+        tx.accounts.payer.key,
+        tx.accounts.dataAccount.key,
+        expertDepositLamports
+      );
+    }
     status = Status.Pending;
   }
 
   @mutableSigner(signer)
-  function takerTakeCase(uint64 _takerDepositLamports) external {
-    require(status == Status.Pending, "NOT_ALLOW_TAKE");
-    takerPubKey = tx.accounts.signer.key;
-    takerDepositLamports = _takerDepositLamports;
-    SystemInstruction.transfer(
-      takerPubKey, tx.accounts.dataAccount.key, takerDepositLamports
-    );
-    status = Status.Taken;
+  function expertCancelCase() external {
+    require(tx.accounts.signer.key == expertPubKey);
+    require(status == Status.Pending);
+    if (expertDepositLamports > 0) {
+      SystemInstruction.transfer(
+        tx.accounts.dataAccount.key, expertPubKey, expertDepositLamports
+      );
+    }
+    status = Status.Cancelled;
   }
 
   @mutableSigner(signer)
-  function makerConfirmCaseComplete() external {
-    require(status == Status.Taken, "NOT_ALLOW_COMPLETE");
-    require(tx.accounts.signer.key == makerPubKey, "INVALID_MAKER");
-    address dataAccountPubKey = tx.accounts.dataAccount.key;
-    SystemInstruction.transfer(makerPubKey, dataAccountPubKey, caseAmountLamports);
-    isTakerGetIncome = false;
-    isMakerRedemption = false;
-    isTakerRedemption = false;
+  function clientActiveCase(uint64 _clientDepositLamports) external {
+    if (clientDepositLamports > 0) {
+      require(clientDepositLamports == _clientDepositLamports);
+    }
+    require(status == Status.Pending);
+    clientPubKey = tx.accounts.signer.key;
+    if (clientDepositLamports > 0) {
+      SystemInstruction.transfer(
+        clientPubKey, tx.accounts.dataAccount.key, clientDepositLamports
+      );
+    }
+    status = Status.Active;
+  }
+
+  @mutableSigner(signer)
+  function clientCompleteCase() external {
+    require(status == Status.Active);
+    require(tx.accounts.signer.key == clientPubKey);
+    SystemInstruction.transfer(
+      clientPubKey, tx.accounts.dataAccount.key, caseAmountLamports
+    );
+    isExpertGetIncome = false;
+    if (expertDepositLamports > 0) {
+      isExpertRedeem = false;
+    } else {
+      isExpertRedeem = true;
+    }
+    if (clientDepositLamports > 0) {
+      isClientRedeem = false;
+    } else {
+      isClientRedeem = true;
+    }
     status = Status.Completed;
   }
 
   @mutableSigner(signer)
-  function takerGetIncome() external {
-    require(
-      status == Status.Completed && isTakerGetIncome == false,
-      "NOT_ALLOW_GET_INCOME"
-    );
-    require(tx.accounts.signer.key == takerPubKey, "INVALID_TAKER");
+  function expertGetIncome() external {
+    require(status == Status.Completed && isExpertGetIncome == false);
+    require(tx.accounts.signer.key == expertPubKey);
     tx.accounts.dataAccount.lamports -= caseAmountLamports * 99 / 100;
     tx.accounts.signer.lamports += caseAmountLamports * 99 / 100;
-    isTakerGetIncome = true;
+    isExpertGetIncome = true;
   }
 
   @mutableSigner(signer)
-  function makerRedemptionDeposit() external {
+  function expertRedeemDeposit() external {
     bool isCompletionAsExpected =
-      status == Status.Completed && isMakerRedemption == false;
+      status == Status.Completed && isExpertRedeem == false;
     bool isForcedCompletionAsExpected =
-      status == Status.ForceCompleted && isMakerRedemption == false;
-    require(
-      isCompletionAsExpected || isForcedCompletionAsExpected,
-      "NOT_ALLOW_REDEMPTION_DEPOSIT"
-    );
-    require(tx.accounts.signer.key == makerPubKey, "INVALID_MAKER");
-    tx.accounts.dataAccount.lamports -= makerDepositLamports;
-    tx.accounts.signer.lamports += makerDepositLamports;
-    isMakerRedemption = true;
+      status == Status.ForceCompleted && isExpertRedeem == false;
+    require(isCompletionAsExpected || isForcedCompletionAsExpected);
+    require(tx.accounts.signer.key == expertPubKey);
+    tx.accounts.dataAccount.lamports -= expertDepositLamports;
+    tx.accounts.signer.lamports += expertDepositLamports;
+    isExpertRedeem = true;
   }
 
   @mutableSigner(signer)
-  function takerRedemptionDeposit() external {
+  function clientRedeemDeposit() external {
     bool isCompletionAsExpected =
-      status == Status.Completed && isTakerRedemption == false;
+      status == Status.Completed && isClientRedeem == false;
     bool isForcedCompletionAsExpected =
-      status == Status.ForceCompleted && isTakerRedemption == false;
-    require(
-      isCompletionAsExpected || isForcedCompletionAsExpected,
-      "NOT_ALLOW_REDEMPTION_DEPOSIT"
-    );
-    require(tx.accounts.signer.key == takerPubKey, "INVALID_TAKER");
-    tx.accounts.dataAccount.lamports -= takerDepositLamports;
-    tx.accounts.signer.lamports += takerDepositLamports;
-    isTakerRedemption = true;
+      status == Status.ForceCompleted && isClientRedeem == false;
+    require(isCompletionAsExpected || isForcedCompletionAsExpected);
+    require(tx.accounts.signer.key == clientPubKey);
+    tx.accounts.dataAccount.lamports -= clientDepositLamports;
+    tx.accounts.signer.lamports += clientDepositLamports;
+    isClientRedeem = true;
   }
 
   @mutableSigner(signer)
   function platformCloseCase() external {
-    bool isCompletionAsExpected = status == Status.Completed && isTakerGetIncome
-      && isMakerRedemption && isTakerRedemption;
-    bool isIndemniteeMakerAsExpected = status == Status.ForceCompleted
-      && indemnitee == Indemnitee.Maker && isMakerRedemption
-      && isIndemniteeReceived;
-    bool isIndemniteeTakerAsExpected = status == Status.ForceCompleted
-      && indemnitee == Indemnitee.Taker && isTakerRedemption
-      && isIndemniteeReceived;
+    bool isCompletionAsExpected = status == Status.Completed
+      && isExpertGetIncome && isExpertRedeem && isClientRedeem;
+    bool isIndemniteeExpertAsExpected = status == Status.ForceCompleted
+      && indemnitee == Indemnitee.Expert && isExpertRedeem && isIndemniteeReceived;
+    bool isIndemniteeClientAsExpected = status == Status.ForceCompleted
+      && indemnitee == Indemnitee.Client && isClientRedeem && isIndemniteeReceived;
     bool isForcedCompletionAsExpected =
-      isIndemniteeMakerAsExpected || isIndemniteeTakerAsExpected;
-    require(
-      isCompletionAsExpected || isForcedCompletionAsExpected, "NOT_ALLOW_CLOSE"
-    );
-    require(tx.accounts.signer.key == platformPubKey, "INVALID_PLATFORM");
+      isIndemniteeExpertAsExpected || isIndemniteeClientAsExpected;
+    require(isCompletionAsExpected || isForcedCompletionAsExpected);
+    require(tx.accounts.signer.key == platformPubKey);
     if (isCompletionAsExpected) {
       tx.accounts.dataAccount.lamports -= caseAmountLamports * 1 / 100;
       tx.accounts.signer.lamports += caseAmountLamports * 1 / 100;
@@ -137,16 +157,16 @@ contract sol_job_program {
 
   @mutableSigner(signer)
   function platformForcedCaseComplete(Indemnitee _indemnitee) external {
-    require(status == Status.Taken, "NOT_ALLOW_FORCED_CLOSE");
-    require(tx.accounts.signer.key == platformPubKey, "INVALID_PLATFORM");
+    require(status == Status.Active);
+    require(tx.accounts.signer.key == platformPubKey);
     indemnitee = _indemnitee;
-    if (indemnitee == Indemnitee.Maker) {
-      isMakerRedemption = false;
-      indemniteePubKey = makerPubKey;
+    if (indemnitee == Indemnitee.Expert) {
+      isExpertRedeem = false;
+      indemniteePubKey = expertPubKey;
     }
-    if (indemnitee == Indemnitee.Taker) {
-      isTakerRedemption = false;
-      indemniteePubKey = takerPubKey;
+    if (indemnitee == Indemnitee.Client) {
+      isClientRedeem = false;
+      indemniteePubKey = clientPubKey;
     }
     isIndemniteeReceived = false;
     status = Status.ForceCompleted;
@@ -154,18 +174,15 @@ contract sol_job_program {
 
   @mutableSigner(signer)
   function indemniteeReceiveCompensation() external {
-    require(
-      status == Status.ForceCompleted && isIndemniteeReceived == false,
-      "NOT_ALLOW_RECEIVE_COMPENSATION"
-    );
-    require(tx.accounts.signer.key == indemniteePubKey, "INVALID_INDEMITEE");
-    if (indemnitee == Indemnitee.Maker) {
-      tx.accounts.dataAccount.lamports -= takerDepositLamports;
-      tx.accounts.signer.lamports += takerDepositLamports;
+    require(status == Status.ForceCompleted && isIndemniteeReceived == false);
+    require(tx.accounts.signer.key == indemniteePubKey);
+    if (indemnitee == Indemnitee.Expert) {
+      tx.accounts.dataAccount.lamports -= clientDepositLamports;
+      tx.accounts.signer.lamports += clientDepositLamports;
     }
-    if (indemnitee == Indemnitee.Taker) {
-      tx.accounts.dataAccount.lamports -= makerDepositLamports;
-      tx.accounts.signer.lamports += makerDepositLamports;
+    if (indemnitee == Indemnitee.Client) {
+      tx.accounts.dataAccount.lamports -= expertDepositLamports;
+      tx.accounts.signer.lamports += expertDepositLamports;
     }
     isIndemniteeReceived = true;
   }
