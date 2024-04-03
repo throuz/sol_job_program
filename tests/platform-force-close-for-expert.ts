@@ -48,11 +48,14 @@ describe("transfer-sol", async () => {
     });
   };
 
-  const caseAmountLamports = new anchor.BN(1 * SOL);
-  const expertDepositLamports = new anchor.BN(0.3 * SOL);
-  const clientDepositLamports = new anchor.BN(0.2 * SOL);
+  const caseAmount = 1;
+  const expertDeposit = 0.3;
+  const clientDeposit = 0.2;
+  const caseAmountLamports = new anchor.BN(caseAmount * SOL);
+  const expertDepositLamports = new anchor.BN(expertDeposit * SOL);
+  const clientDepositLamports = new anchor.BN(clientDeposit * SOL);
 
-  it("This test is for platform force close for expert process\n      case amount: 1 SOL\n      expert deposit: 0.3 SOL\n      client deposit: 0.2 SOL", async () => {
+  it(`This test is for platform force close for expert process\n      case amount: ${caseAmount} SOL\n      expert deposit: ${expertDeposit} SOL\n      client deposit: ${clientDeposit} SOL`, async () => {
     await requestAirdrop(platformAccount.publicKey, 10 * SOL);
     await requestAirdrop(expertAccount.publicKey, 10 * SOL);
     await requestAirdrop(clientAccount.publicKey, 10 * SOL);
