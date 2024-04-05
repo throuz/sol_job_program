@@ -45,26 +45,26 @@ contract solva {
   }
 
   @mutableSigner(signer)
+  @mutableAccount(DA)
   function expertCancelCase() external {
     require(status == Status.Created);
     require(tx.accounts.signer.key == expertPubKey);
     if (expertDepositLamports > 0) {
-      tx.accounts.dataAccount.lamports -= expertDepositLamports;
+      tx.accounts.DA.lamports -= expertDepositLamports;
       tx.accounts.signer.lamports += expertDepositLamports;
     }
     status = Status.Canceled;
   }
 
   @mutableSigner(signer)
+  @mutableAccount(DA)
   function clientActivateCase(uint64 _clientDepositLamports) external {
     require(status == Status.Created);
     require(clientDepositLamports == _clientDepositLamports);
     clientPubKey = tx.accounts.signer.key;
     if (clientDepositLamports > 0) {
       SystemInstruction.transfer(
-        tx.accounts.signer.key,
-        tx.accounts.dataAccount.key,
-        clientDepositLamports
+        tx.accounts.signer.key, tx.accounts.DA.key, clientDepositLamports
       );
     }
     status = Status.Activated;
@@ -87,50 +87,54 @@ contract solva {
   }
 
   @mutableSigner(signer)
+  @mutableAccount(DA)
   function indemniteeRecieveCompensation() external {
     require(status == Status.ForceClosed);
     require(tx.accounts.signer.key == indemniteePubKey);
     if (expertDepositLamports > 0) {
-      tx.accounts.dataAccount.lamports -= expertDepositLamports;
+      tx.accounts.DA.lamports -= expertDepositLamports;
       tx.accounts.signer.lamports += expertDepositLamports;
     }
     if (clientDepositLamports > 0) {
-      tx.accounts.dataAccount.lamports -= clientDepositLamports;
+      tx.accounts.DA.lamports -= clientDepositLamports;
       tx.accounts.signer.lamports += clientDepositLamports;
     }
     status = Status.Compensated;
   }
 
   @mutableSigner(signer)
+  @mutableAccount(DA)
   function clientCompleteCase() external {
     require(status == Status.Activated);
     require(tx.accounts.signer.key == clientPubKey);
     SystemInstruction.transfer(
       tx.accounts.signer.key,
-      tx.accounts.dataAccount.key,
+      tx.accounts.DA.key,
       caseAmountLamports - clientDepositLamports
     );
     status = Status.Completed;
   }
 
   @mutableSigner(signer)
+  @mutableAccount(DA)
   function expertGetIncome() external {
     require(status == Status.Completed);
     require(tx.accounts.signer.key == expertPubKey);
-    tx.accounts.dataAccount.lamports -= caseAmountLamports * 99 / 100;
+    tx.accounts.DA.lamports -= caseAmountLamports * 99 / 100;
     tx.accounts.signer.lamports += caseAmountLamports * 99 / 100;
     if (expertDepositLamports > 0) {
-      tx.accounts.dataAccount.lamports -= expertDepositLamports;
+      tx.accounts.DA.lamports -= expertDepositLamports;
       tx.accounts.signer.lamports += expertDepositLamports;
     }
     status = Status.GotIncome;
   }
 
   @mutableSigner(signer)
+  @mutableAccount(DA)
   function platformCloseCase() external {
     require(status == Status.GotIncome);
     require(tx.accounts.signer.key == platformPubKey);
-    tx.accounts.dataAccount.lamports -= caseAmountLamports * 1 / 100;
+    tx.accounts.DA.lamports -= caseAmountLamports * 1 / 100;
     tx.accounts.signer.lamports += caseAmountLamports * 1 / 100;
     status = Status.Closed;
   }

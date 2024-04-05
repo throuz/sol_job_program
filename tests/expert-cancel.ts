@@ -87,6 +87,7 @@ describe("transfer-sol", async () => {
       .accounts({
         signer: expertAccount.publicKey,
         dataAccount: dataAccount.publicKey,
+        DA: dataAccount.publicKey,
       })
       .signers([expertAccount])
       .rpc();
