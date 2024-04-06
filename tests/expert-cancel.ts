@@ -73,7 +73,7 @@ describe("transfer-sol", async () => {
         clientDepositLamports
       )
       .accounts({
-        payer: expertAccount.publicKey,
+        expert: expertAccount.publicKey,
         dataAccount: dataAccount.publicKey,
       })
       .signers([expertAccount, dataAccount])
@@ -86,9 +86,9 @@ describe("transfer-sol", async () => {
     await program.methods
       .expertCancelCase()
       .accounts({
-        signer: expertAccount.publicKey,
-        dataAccount: dataAccount.publicKey,
         DA: dataAccount.publicKey,
+        expert: expertAccount.publicKey,
+        dataAccount: dataAccount.publicKey,
       })
       .signers([expertAccount])
       .rpc();
