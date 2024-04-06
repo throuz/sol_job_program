@@ -66,13 +66,13 @@ describe("transfer-sol", async () => {
   it("Expert create case", async () => {
     await program.methods
       .new(
-        platformAccount.publicKey,
         clientAccount.publicKey,
         caseAmountLamports,
         expertDepositLamports,
         clientDepositLamports
       )
       .accounts({
+        platform: platformAccount.publicKey,
         expert: expertAccount.publicKey,
         dataAccount: dataAccount.publicKey,
       })

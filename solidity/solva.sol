@@ -18,15 +18,15 @@ contract solva {
     Completed
   }
 
+  @mutableAccount(platform)
   @payer(expert)
   constructor(
-    address _platformPubKey,
     address _clientPubKey,
     uint64 _caseAmountLamports,
     uint64 _expertDepositLamports,
     uint64 _clientDepositLamports
   ) {
-    platformPubKey = _platformPubKey;
+    platformPubKey = tx.accounts.platform.key;
     expertPubKey = tx.accounts.expert.key;
     clientPubKey = _clientPubKey;
     caseAmountLamports = _caseAmountLamports;
@@ -39,6 +39,10 @@ contract solva {
         expertDepositLamports
       );
     }
+    uint64 platformFee = caseAmountLamports * 1 / 100;
+    SystemInstruction.transfer(
+      tx.accounts.expert.key, tx.accounts.platform.key, platformFee
+    );
     status = Status.Created;
   }
 
@@ -55,9 +59,11 @@ contract solva {
   }
 
   @mutableAccount(DA)
+  @mutableAccount(platform)
   @mutableSigner(client)
   function clientActivateCase(uint64 _clientDepositLamports) external {
     require(status == Status.Created);
+    require(tx.accounts.platform.key == platformPubKey);
     require(tx.accounts.client.key == clientPubKey);
     require(clientDepositLamports == _clientDepositLamports);
     if (clientDepositLamports > 0) {
@@ -65,6 +71,10 @@ contract solva {
         tx.accounts.client.key, tx.accounts.DA.key, clientDepositLamports
       );
     }
+    uint64 platformFee = caseAmountLamports * 1 / 100;
+    SystemInstruction.transfer(
+      tx.accounts.client.key, tx.accounts.platform.key, platformFee
+    );
     status = Status.Activated;
   }
 
@@ -113,13 +123,8 @@ contract solva {
     require(tx.accounts.platform.key == platformPubKey);
     require(tx.accounts.expert.key == expertPubKey);
     require(tx.accounts.client.key == clientPubKey);
-    uint64 platformIncome = caseAmountLamports * 1 / 100;
-    uint64 expertIncome = caseAmountLamports * 99 / 100;
     SystemInstruction.transfer(
-      tx.accounts.client.key, tx.accounts.platform.key, platformIncome
-    );
-    SystemInstruction.transfer(
-      tx.accounts.client.key, tx.accounts.expert.key, expertIncome
+      tx.accounts.client.key, tx.accounts.expert.key, caseAmountLamports
     );
     if (expertDepositLamports > 0) {
       tx.accounts.DA.lamports -= expertDepositLamports;
