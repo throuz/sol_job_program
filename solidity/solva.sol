@@ -1,6 +1,6 @@
 import "../libraries/system_instruction.sol";
 
-@program_id("C5Va9W4xKoXrWFjAvMgToCQpHFTN9CcJXQTLFh7yk99C")
+@program_id("GuvvxMUBDziMyyB2fy7XoUy7cLE5mHQiBNwPzHHHDtSg")
 contract solva {
   address private platformPubKey;
   address private expertPubKey;
@@ -113,15 +113,13 @@ contract solva {
     require(tx.accounts.signer.key == clientPubKey);
     require(tx.accounts.expert.key == expertPubKey);
     require(tx.accounts.platform.key == platformPubKey);
+    uint64 expertIncome = caseAmountLamports * 99 / 100;
+    uint64 platformIncome = caseAmountLamports * 1 / 100;
     SystemInstruction.transfer(
-      tx.accounts.signer.key,
-      tx.accounts.expert.key,
-      caseAmountLamports * 99 / 100
+      tx.accounts.signer.key, tx.accounts.expert.key, expertIncome
     );
     SystemInstruction.transfer(
-      tx.accounts.signer.key,
-      tx.accounts.platform.key,
-      caseAmountLamports * 1 / 100
+      tx.accounts.signer.key, tx.accounts.platform.key, platformIncome
     );
     if (clientDepositLamports > 0) {
       tx.accounts.DA.lamports -= clientDepositLamports;

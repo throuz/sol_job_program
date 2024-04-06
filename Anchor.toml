@@ -5,10 +5,10 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-solva = "C5Va9W4xKoXrWFjAvMgToCQpHFTN9CcJXQTLFh7yk99C"
+solva = "GuvvxMUBDziMyyB2fy7XoUy7cLE5mHQiBNwPzHHHDtSg"
 
 [programs.devnet]
-solva = "C5Va9W4xKoXrWFjAvMgToCQpHFTN9CcJXQTLFh7yk99C"
+solva = "GuvvxMUBDziMyyB2fy7XoUy7cLE5mHQiBNwPzHHHDtSg"
 
 [registry]
 url = "https://api.apr.dev"
