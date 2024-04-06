@@ -104,38 +104,29 @@ contract solva {
 
   @mutableSigner(signer)
   @mutableAccount(DA)
+  @mutableAccount(expert)
+  @mutableAccount(platform)
   function clientCompleteCase() external {
     require(status == Status.Activated);
     require(tx.accounts.signer.key == clientPubKey);
     SystemInstruction.transfer(
       tx.accounts.signer.key,
-      tx.accounts.DA.key,
-      caseAmountLamports - clientDepositLamports
+      tx.accounts.expert.key,
+      caseAmountLamports * 99 / 100
     );
-    status = Status.Completed;
-  }
-
-  @mutableSigner(signer)
-  @mutableAccount(DA)
-  function expertGetIncome() external {
-    require(status == Status.Completed);
-    require(tx.accounts.signer.key == expertPubKey);
-    tx.accounts.DA.lamports -= caseAmountLamports * 99 / 100;
-    tx.accounts.signer.lamports += caseAmountLamports * 99 / 100;
+    SystemInstruction.transfer(
+      tx.accounts.signer.key,
+      tx.accounts.platform.key,
+      caseAmountLamports * 1 / 100
+    );
+    if (clientDepositLamports > 0) {
+      tx.accounts.DA.lamports -= clientDepositLamports;
+      tx.accounts.signer.lamports += clientDepositLamports;
+    }
     if (expertDepositLamports > 0) {
       tx.accounts.DA.lamports -= expertDepositLamports;
-      tx.accounts.signer.lamports += expertDepositLamports;
+      tx.accounts.expert.lamports += expertDepositLamports;
     }
-    status = Status.GotIncome;
-  }
-
-  @mutableSigner(signer)
-  @mutableAccount(DA)
-  function platformCloseCase() external {
-    require(status == Status.GotIncome);
-    require(tx.accounts.signer.key == platformPubKey);
-    tx.accounts.DA.lamports -= caseAmountLamports * 1 / 100;
-    tx.accounts.signer.lamports += caseAmountLamports * 1 / 100;
-    status = Status.Closed;
+    status = Status.Completed;
   }
 }

@@ -100,40 +100,14 @@ describe("transfer-sol", async () => {
       .clientCompleteCase()
       .accounts({
         signer: clientAccount.publicKey,
-        dataAccount: dataAccount.publicKey,
         DA: dataAccount.publicKey,
+        expert: expertAccount.publicKey,
+        platform: platformAccount.publicKey,
+        dataAccount: dataAccount.publicKey,
       })
       .signers([clientAccount])
       .rpc();
     await checkBalances();
     console.log("Status: Completed");
-  });
-
-  it("Expert get income", async () => {
-    await program.methods
-      .expertGetIncome()
-      .accounts({
-        signer: expertAccount.publicKey,
-        dataAccount: dataAccount.publicKey,
-        DA: dataAccount.publicKey,
-      })
-      .signers([expertAccount])
-      .rpc();
-    await checkBalances();
-    console.log("Status: GotIncome");
-  });
-
-  it("Platform close case", async () => {
-    await program.methods
-      .platformCloseCase()
-      .accounts({
-        signer: platformAccount.publicKey,
-        dataAccount: dataAccount.publicKey,
-        DA: dataAccount.publicKey,
-      })
-      .signers([platformAccount])
-      .rpc();
-    await checkBalances();
-    console.log("Status: Closed");
   });
 });
