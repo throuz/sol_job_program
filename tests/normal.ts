@@ -67,6 +67,7 @@ describe("transfer-sol", async () => {
     await program.methods
       .new(
         platformAccount.publicKey,
+        clientAccount.publicKey,
         caseAmountLamports,
         expertDepositLamports,
         clientDepositLamports

@@ -8,7 +8,6 @@ contract solva {
   uint64 private caseAmountLamports;
   uint64 private expertDepositLamports;
   uint64 private clientDepositLamports;
-  address private indemniteePubKey;
   Status private status;
 
   enum Status {
@@ -16,20 +15,19 @@ contract solva {
     Canceled,
     Activated,
     ForceClosed,
-    Compensated,
-    Completed,
-    GotIncome,
-    Closed
+    Completed
   }
 
   @payer(payer)
   constructor(
     address _platformPubKey,
+    address _clientPubKey,
     uint64 _caseAmountLamports,
     uint64 _expertDepositLamports,
     uint64 _clientDepositLamports
   ) {
     platformPubKey = _platformPubKey;
+    clientPubKey = _clientPubKey;
     expertPubKey = tx.accounts.payer.key;
     caseAmountLamports = _caseAmountLamports;
     expertDepositLamports = _expertDepositLamports;
@@ -60,8 +58,8 @@ contract solva {
   @mutableAccount(DA)
   function clientActivateCase(uint64 _clientDepositLamports) external {
     require(status == Status.Created);
+    require(tx.accounts.signer.key == clientPubKey);
     require(clientDepositLamports == _clientDepositLamports);
-    clientPubKey = tx.accounts.signer.key;
     if (clientDepositLamports > 0) {
       SystemInstruction.transfer(
         tx.accounts.signer.key, tx.accounts.DA.key, clientDepositLamports
@@ -71,35 +69,39 @@ contract solva {
   }
 
   @mutableSigner(signer)
+  @mutableAccount(DA)
+  @mutableAccount(expert)
   function platformForceCloseCaseForExpert() external {
     require(status == Status.Activated);
     require(tx.accounts.signer.key == platformPubKey);
-    indemniteePubKey = expertPubKey;
-    status = Status.ForceClosed;
-  }
-
-  @mutableSigner(signer)
-  function platformForceCloseCaseForClient() external {
-    require(status == Status.Activated);
-    require(tx.accounts.signer.key == platformPubKey);
-    indemniteePubKey = clientPubKey;
+    require(tx.accounts.expert.key == expertPubKey);
+    if (expertDepositLamports > 0) {
+      tx.accounts.DA.lamports -= expertDepositLamports;
+      tx.accounts.expert.lamports += expertDepositLamports;
+    }
+    if (clientDepositLamports > 0) {
+      tx.accounts.DA.lamports -= clientDepositLamports;
+      tx.accounts.expert.lamports += clientDepositLamports;
+    }
     status = Status.ForceClosed;
   }
 
   @mutableSigner(signer)
   @mutableAccount(DA)
-  function indemniteeRecieveCompensation() external {
-    require(status == Status.ForceClosed);
-    require(tx.accounts.signer.key == indemniteePubKey);
+  @mutableAccount(client)
+  function platformForceCloseCaseForClient() external {
+    require(status == Status.Activated);
+    require(tx.accounts.signer.key == platformPubKey);
+    require(tx.accounts.client.key == clientPubKey);
     if (expertDepositLamports > 0) {
       tx.accounts.DA.lamports -= expertDepositLamports;
-      tx.accounts.signer.lamports += expertDepositLamports;
+      tx.accounts.client.lamports += expertDepositLamports;
     }
     if (clientDepositLamports > 0) {
       tx.accounts.DA.lamports -= clientDepositLamports;
-      tx.accounts.signer.lamports += clientDepositLamports;
+      tx.accounts.client.lamports += clientDepositLamports;
     }
-    status = Status.Compensated;
+    status = Status.ForceClosed;
   }
 
   @mutableSigner(signer)
@@ -109,6 +111,8 @@ contract solva {
   function clientCompleteCase() external {
     require(status == Status.Activated);
     require(tx.accounts.signer.key == clientPubKey);
+    require(tx.accounts.expert.key == expertPubKey);
+    require(tx.accounts.platform.key == platformPubKey);
     SystemInstruction.transfer(
       tx.accounts.signer.key,
       tx.accounts.expert.key,

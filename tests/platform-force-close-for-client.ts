@@ -67,6 +67,7 @@ describe("transfer-sol", async () => {
     await program.methods
       .new(
         platformAccount.publicKey,
+        clientAccount.publicKey,
         caseAmountLamports,
         expertDepositLamports,
         clientDepositLamports
@@ -101,24 +102,12 @@ describe("transfer-sol", async () => {
       .accounts({
         signer: platformAccount.publicKey,
         dataAccount: dataAccount.publicKey,
+        DA: dataAccount.publicKey,
+        client: clientAccount.publicKey,
       })
       .signers([platformAccount])
       .rpc();
     await checkBalances();
     console.log("Status: ForceClosed");
-  });
-
-  it("Client recieve compensation", async () => {
-    await program.methods
-      .indemniteeRecieveCompensation()
-      .accounts({
-        signer: clientAccount.publicKey,
-        dataAccount: dataAccount.publicKey,
-        DA: dataAccount.publicKey,
-      })
-      .signers([clientAccount])
-      .rpc();
-    await checkBalances();
-    console.log("Status: Compensated");
   });
 });
