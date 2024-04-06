@@ -1,6 +1,6 @@
 import "../libraries/system_instruction.sol";
 
-@program_id("C5Va9W4xKoXrWFjAvMgToCQpHFTN9CcJXQTLFh7yk99C")
+@program_id("4DN2e9zBcoCA4SWm5gVpju7hHoWB7yUBk27BTt3SNBcS")
 contract solva {
   address private platformPubKey;
   address private expertPubKey;
@@ -107,15 +107,14 @@ contract solva {
   function clientCompleteCase() external {
     require(status == Status.Activated);
     require(tx.accounts.signer.key == clientPubKey);
+
     SystemInstruction.transfer(
-      tx.accounts.signer.key,
-      tx.accounts.DA.key,
-      caseAmountLamports - clientDepositLamports
+      tx.accounts.signer.key, tx.accounts.DA.key, caseAmountLamports
     );
     status = Status.Completed;
   }
 
-  @mutableSigner(signer)
+  @mutableAccount(signer)
   @mutableAccount(DA)
   function expertGetIncome() external {
     require(status == Status.Completed);
@@ -129,7 +128,7 @@ contract solva {
     status = Status.GotIncome;
   }
 
-  @mutableSigner(signer)
+  @mutableAccount(signer)
   @mutableAccount(DA)
   function platformCloseCase() external {
     require(status == Status.GotIncome);
